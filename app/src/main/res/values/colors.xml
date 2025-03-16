@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- light theme -->
+    <color name="main">#007BFF</color>
+    <color name="main_hover">#0056b3</color>
+    <color name="background">#fff</color>
+    <color name="post_background">#f8fafd</color>
+    <color name="text">#000</color>
+    <color name="text_inverted">#fff</color>
+    <color name="text_secondary">#666</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- dark theme -->
+    <color name="background_dark">#212121</color>
+    <color name="post_background_dark">#171717</color>
+    <color name="text_dark">#fff</color>
+</resources>
