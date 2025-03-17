@@ -18,7 +18,7 @@ class LoginRedirectActivity : AppCompatActivity() {
 
     private val clientId = BuildConfig.CLIENT_ID
     private val clientSecret = BuildConfig.CLIENT_SECRET
-    private val redirect_uri = BuildConfig.REDIRECT_URI
+    private val redirect_uri = BuildConfig.API_URL
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
