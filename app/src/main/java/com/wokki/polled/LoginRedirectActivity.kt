@@ -18,7 +18,7 @@ class LoginRedirectActivity : AppCompatActivity() {
 
     private val clientId = BuildConfig.CLIENT_ID
     private val clientSecret = BuildConfig.CLIENT_SECRET
-    private val apiUrl = BuildConfig.API_URL
+    private val redirect_uri = BuildConfig.REDIRECT_URI
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,14 +27,29 @@ class LoginRedirectActivity : AppCompatActivity() {
 
         val uri: Uri? = intent?.data
         val code = uri?.getQueryParameter("code")
+        val page = uri?.getQueryParameter("page")
 
         if (code != null) {
+            // If the URI contains a code, exchange it for a token
             exchangeCodeForToken(code)
         } else {
-            Log.e("LoginRedirect", "No code found in URI")
-            finish()
+            // If no code is found, redirect to the MainActivity
+            Log.e("LoginRedirect", "No code found in URI, redirecting to MainActivity")
+
+            val mainIntent = Intent(this, MainActivity::class.java).apply {
+                if (page != null) {
+                    putExtra("page", page)  // Pass the page to MainActivity
+                }
+            }
+            startActivity(mainIntent)
+            finish()  // Close the current activity
         }
     }
+
+
+
+
+
 
     private fun exchangeCodeForToken(code: String) {
         val client = OkHttpClient()
@@ -42,7 +57,7 @@ class LoginRedirectActivity : AppCompatActivity() {
         val requestBody = FormBody.Builder()
             .add("grant_type", "authorization_code")
             .add("code", code)
-            .add("redirect_uri", apiUrl)
+            .add("redirect_uri", redirect_uri)
             .add("client_id", clientId)
             .add("client_secret", clientSecret)
             .build()

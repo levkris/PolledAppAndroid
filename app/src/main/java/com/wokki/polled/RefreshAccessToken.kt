@@ -16,8 +16,7 @@ class RefreshAccessToken(private val context: Context) {
 
     private val clientId = BuildConfig.CLIENT_ID
     private val clientSecret = BuildConfig.CLIENT_SECRET
-    private val apiUrl = BuildConfig.API_URL
-
+    private val apiUrl = "https://levgames.nl/polled/api/v1/authorization_code.php"
 
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
@@ -31,7 +30,6 @@ class RefreshAccessToken(private val context: Context) {
 
         if (isAccessExpired && !isRefreshExpired) {
             refreshAccessToken()
-            println("Access token refreshed")
         } else if (!isAccessExpired) {
             println("Access token is still valid")
         }
@@ -85,6 +83,7 @@ class RefreshAccessToken(private val context: Context) {
             "client_secret" to clientSecret
         )
 
+
         val response = postRequest(apiUrl, params)
         response?.let { jsonResponse ->
             val accessToken = jsonResponse.optString("access_token", "")
@@ -112,6 +111,7 @@ class RefreshAccessToken(private val context: Context) {
 
                 val postData = params.entries.joinToString("&") { "${it.key}=${it.value}" }
                 connection.outputStream.use { it.write(postData.toByteArray()) }
+
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
                 JSONObject(response)

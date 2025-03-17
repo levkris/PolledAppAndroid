@@ -2,6 +2,7 @@ package com.wokki.polled
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
@@ -21,10 +22,9 @@ class MainActivity : AppCompatActivity() {
 
         // Check if the user is logged in
         if (!isUserLoggedIn()) {
-            // Redirect to LoginActivity if the user is not logged in
             val loginIntent = Intent(this, LoginActivity::class.java)
             startActivity(loginIntent)
-            finish() // Close the app since they need to log in first
+            finish() // Close the app if not logged in
             return
         }
 
@@ -50,6 +50,32 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+
+        // Check if there's an extra for the page to navigate to
+        val page = intent?.getStringExtra("page")
+
+        if (page != null) {
+            navigateToPage(page)
+        }
+
+    }
+
+    private fun navigateToPage(page: String) {
+        val navController = findNavController(R.id.nav_host_fragment_activity_main)
+        Log.d("NavController", "NavController found: $navController")
+        navigateToPage(page)
+
+
+        Log.e("LoginRedirect", "Attempting to navigate to: $page")
+
+        when (page) {
+            "home" -> navController.navigate(R.id.navigation_home)
+            "post" -> navController.navigate(R.id.navigation_post)
+            "profile" -> navController.navigate(R.id.navigation_profile)
+            else -> Log.e("LoginRedirect", "Unknown page: $page")
+        }
+
+
     }
 
     private fun isUserLoggedIn(): Boolean {
@@ -57,3 +83,4 @@ class MainActivity : AppCompatActivity() {
         return sharedPreferences.getBoolean("is_logged_in", false)
     }
 }
+
