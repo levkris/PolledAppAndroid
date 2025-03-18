@@ -88,8 +88,11 @@ class RefreshAccessToken(private val context: Context) {
         response?.let { jsonResponse ->
             val accessToken = jsonResponse.optString("access_token", "")
             val newRefreshToken = jsonResponse.optString("refresh_token", refreshToken)
-            val accessTokenExpiresIn = jsonResponse.optString("access_token_expires_in", "0").toLong() * 1000 + System.currentTimeMillis()
-            val refreshTokenExpiresIn = jsonResponse.optString("refresh_token_expires_in", "0").toLong() * 1000 + System.currentTimeMillis()
+            val accessTokenExpiresInString = jsonResponse.optString("access_token_expires_in", "")
+            val accessTokenExpiresIn = parseDateToMillis(accessTokenExpiresInString)
+
+            val refreshTokenExpiresInString = jsonResponse.optString("refresh_token_expires_in", "")
+            val refreshTokenExpiresIn = parseDateToMillis(refreshTokenExpiresInString)
 
             with(sharedPreferences.edit()) {
                 putString("access_token", accessToken)
@@ -121,4 +124,18 @@ class RefreshAccessToken(private val context: Context) {
             }
         }
     }
+
+    private fun parseDateToMillis(dateString: String): Long {
+        return try {
+            val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            formatter.timeZone = TimeZone.getTimeZone("Europe/Amsterdam")
+            val date = formatter.parse(dateString)
+            date?.time ?: 0L
+        } catch (e: Exception) {
+            e.printStackTrace()
+            0L // Fallback als parsing mislukt
+        }
+    }
+
+
 }

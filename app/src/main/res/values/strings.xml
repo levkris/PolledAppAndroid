@@ -7,6 +7,11 @@
     <string name="login">Login</string>
     <string name="logout">Logout</string>
     <string name="noInternet">No Internet Connection</string>
+    <string name="banned_message">You are banned from Polled</string>
+    <string name="banned_reason">Reason: </string>
+    <string name="banned_username">Username: </string>
+    <string name="appeal_text">Appeal ban</string>
+
 
 
     <string name="login_message">You have to login to use Polled</string>

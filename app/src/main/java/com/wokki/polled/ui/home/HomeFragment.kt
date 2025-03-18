@@ -2,17 +2,23 @@ package com.wokki.polled.ui.home
 
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
+import android.content.Intent
 import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -59,6 +65,13 @@ class HomeFragment : Fragment() {
     private lateinit var timelineAdapter: TimelineAdapter
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var homeViewModel: HomeViewModel
+
+    private lateinit var timelineRecyclerView: RecyclerView
+    private lateinit var bannedLayout: LinearLayout
+    private lateinit var bannedMessageTextView: TextView
+    private lateinit var bannedReasonTextView: TextView
+    private lateinit var bannedUsernameTextView: TextView
+    private lateinit var appealBanButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -165,6 +178,24 @@ class HomeFragment : Fragment() {
         return root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Safely access views using the 'view' property
+        timelineRecyclerView = view.findViewById(R.id.timelineRecyclerView)
+        bannedLayout = view.findViewById(R.id.banned_layout)
+        bannedMessageTextView = view.findViewById(R.id.banned_message)
+        bannedReasonTextView = view.findViewById(R.id.banned_reason)
+        bannedUsernameTextView = view.findViewById(R.id.banned_username)
+        appealBanButton = view.findViewById(R.id.appealBanButton)
+        // Ensure that view has been initialized before using it
+        timelineRecyclerView?.let {
+            it.visibility = View.VISIBLE
+        }
+
+        // Initially hide the banned layout
+        bannedLayout?.visibility = View.GONE
+    }
 
     private fun loadMoreData() {
         loading = true
@@ -225,13 +256,21 @@ class HomeFragment : Fragment() {
                     return inputStream.bufferedReader().use { it.readText() }
                 } else {
                     throw Exception("Error: $responseCode")
+
                 }
             } catch (e: Exception) {
                 return "Error: ${e.message}"
+
             } finally {
                 urlConnection.disconnect()
             }
         }
+
+        private fun retryRequest() {
+            println("Retrying the request after token refresh...")
+            execute()
+        }
+
 
         override fun onPostExecute(result: String) {
             super.onPostExecute(result)
@@ -241,15 +280,34 @@ class HomeFragment : Fragment() {
             // Log the raw response
             println("Raw response: $result")
 
-            if (result.startsWith("Error")) {
-                // Handle error
-                println(result)
-            } else {
-                try {
-                    // Try to parse the response as JSON
-                    val jsonResponse = JSONObject(result)
+            try {
+                val jsonResponse = JSONObject(result)
 
-                    // Check if status is success
+                // Check if the response indicates a ban
+                if (jsonResponse.has("success") && jsonResponse.getBoolean("success") == false && jsonResponse.has("message")) {
+                    val message = jsonResponse.getString("message")
+                    if (message == "User is banned") {
+                        val username = jsonResponse.getString("username")
+                        val reason = jsonResponse.getString("reason")
+
+                        // Update the UI to show the banned page
+                        showBannedPage(username, reason)
+                        return // Exit early since we don't need to process the timeline anymore
+                    }
+                }
+
+                // Existing logic for handling non-banned users
+                if (jsonResponse.has("error")) {
+                    val errorMessage = jsonResponse.getString("error")
+                    println("Error from server: $errorMessage")
+
+                    var retried = false
+                    if (errorMessage == "Invalid or expired access token" && !retried) {
+                        retried = true
+                        retryRequest()
+                    }
+                } else {
+                    // Try to parse the response as JSON
                     val status = jsonResponse.optString("status")
                     if (status != "success") {
                         // Handle the error if status is not success
@@ -272,11 +330,73 @@ class HomeFragment : Fragment() {
                             println("No more posts to load.")
                         }
                     }
-                } catch (e: Exception) {
-                    println("Error parsing JSON: ${e.message}")
                 }
+            } catch (e: Exception) {
+                println("Failed to parse JSON response: $e")
             }
         }
+
+
+        private fun showBannedPage(username: String, reason: String) {
+            // Safely access views using 'view' property and ensure 'view' is not null
+            view?.findViewById<RecyclerView>(R.id.timelineRecyclerView)?.visibility = View.GONE
+            view?.findViewById<LinearLayout>(R.id.banned_layout)?.visibility = View.VISIBLE
+
+            // Handle the reason text with bold and italic formatting
+            val formattedReason = formatTextWithStyles(reason)
+
+            appealBanButton.isEnabled = true // Ensure the button is enabled
+
+            appealBanButton?.requestFocus()
+
+            appealBanButton?.setOnClickListener {
+                openMailTo(username)
+            }
+
+            // Set the formatted reason text with bold/italic styles
+            view?.findViewById<TextView>(R.id.banned_reason)?.text = formattedReason
+            view?.findViewById<TextView>(R.id.banned_username)?.text = "Username: $username"
+        }
+
+        // Function to format the text with bold and italic, remove the markers, and handle newlines
+        private fun formatTextWithStyles(text: String): CharSequence {
+            var formattedText = text
+
+            // Handle line breaks by replacing \n with <br>
+            formattedText = formattedText.replace("\n", "<br>")
+
+            // Remove the bold markers (**)
+            val boldPattern = "\\*\\*(.*?)\\*\\*".toRegex()
+            formattedText = formattedText.replace(boldPattern) { match ->
+                val boldText = match.groupValues[1]  // Get the content inside ** **
+                "<b>$boldText</b>" // Wrap it in <b> for bold styling
+            }
+
+            // Remove the italic markers (* or _)
+            val italicPattern = "([*_])(.*?)([*_])".toRegex()
+            formattedText = formattedText.replace(italicPattern) { match ->
+                val italicText = match.groupValues[2]  // Get the content inside * or _
+                "<i>$italicText</i>" // Wrap it in <i> for italic styling
+            }
+
+            // Convert the formatted text to a SpannableString for styling
+            return Html.fromHtml(formattedText, Html.FROM_HTML_MODE_LEGACY)
+        }
+
+
+
+        private fun openMailTo(username: String) {
+            // Create an intent for opening the mailto link (email) with the subject and body
+            val emailUri = Uri.parse("mailto:info@levgames.nl?subject=Ban Appeal for $username&body=I would like to appeal my ban.")
+            val emailIntent = Intent(Intent.ACTION_VIEW, emailUri)
+
+            // Directly start the activity without checking for a mail app
+            startActivity(emailIntent)
+        }
+
+
+
+
     }
 
     override fun onDestroyView() {
