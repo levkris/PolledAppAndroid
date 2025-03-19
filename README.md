@@ -34,5 +34,8 @@ Polled also has a web version. To use it, you can go to https://polled.levgames.
 ## Contributing
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
+## Work in progress
+Please note that everything is work in progress and may contain bugs and errors. If you find a bug or an error, please contact me at [info@levgames.nl](mailto:info@levgames.nl)
+
 ## License
 This project is licensed under the [Apache License 2.0](LICENSE).
