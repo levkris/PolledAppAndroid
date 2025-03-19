@@ -7,6 +7,9 @@ Polled is a social media app focused on polls. It is built using Kotlin for Andr
 - Available on Android and Web
 - Built with Android Studio using Kotlin
 
+## Download app
+You can download the latest version of the app [here](https://polled.levgames.nl/polled-app.apk)
+
 ## Clone the Repository
 To get started with Polled, download the zip, or clone the repository using the following command:
 ```sh
