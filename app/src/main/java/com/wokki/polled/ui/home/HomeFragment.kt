@@ -139,7 +139,7 @@ class HomeFragment : Fragment() {
                     val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                     val lastKnownPosition = layoutManager.findFirstVisibleItemPosition()
 
-                    val timelineAdapter = TimelineAdapter() // No parameters needed now
+                    val timelineAdapter = TimelineAdapter(requireContext()) // No parameters needed now
 
                     val timelineData: List<JSONObject> = timeline
 

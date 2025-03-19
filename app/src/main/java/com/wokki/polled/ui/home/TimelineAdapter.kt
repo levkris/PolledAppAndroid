@@ -1,14 +1,20 @@
 package com.wokki.polled.ui.home
 
+import android.content.Context
+import android.content.Context.MODE_PRIVATE
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.text.Html
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.StyleSpan
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -17,15 +23,26 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.wokki.polled.R
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import org.json.JSONObject
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class TimelineAdapter : ListAdapter<JSONObject, TimelineAdapter.TimelineViewHolder>(TimelineDiffCallback()) {
+class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, TimelineAdapter.TimelineViewHolder>(TimelineDiffCallback()) {
+
+    private val sharedPreferences = context.getSharedPreferences("user_prefs", MODE_PRIVATE)
+    private val accessToken = sharedPreferences.getString("access_token", null)
 
     // DiffUtil callback for efficient updates
     class TimelineDiffCallback : DiffUtil.ItemCallback<JSONObject>() {
@@ -136,6 +153,16 @@ class TimelineAdapter : ListAdapter<JSONObject, TimelineAdapter.TimelineViewHold
         private val pollOptionsContainer: LinearLayout = itemView.findViewById(R.id.pollOptionsContainer)  // LinearLayout for options
 
         fun bind(timelineItem: JSONObject) {
+
+            val canChange = timelineItem.optBoolean("can_change")
+
+
+            itemView.setOnLongClickListener {
+                showPostOptions(timelineItem, canChange)
+                true // Return true to indicate the event is handled
+            }
+
+
             // Construct the profile picture URL dynamically
             val profilePictureUrl = "https://levgames.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
 
@@ -144,6 +171,7 @@ class TimelineAdapter : ListAdapter<JSONObject, TimelineAdapter.TimelineViewHold
                 .load(profilePictureUrl)
                 .circleCrop()
                 .into(profilePic)
+
 
             // Username
             val name = timelineItem.optString("maker")
@@ -215,6 +243,140 @@ class TimelineAdapter : ListAdapter<JSONObject, TimelineAdapter.TimelineViewHold
             }
         }
 
+        private fun showPostOptions(post: JSONObject, canChange: Boolean) {
+            val bottomSheetDialog = BottomSheetDialog(itemView.context)
+            val view = LayoutInflater.from(itemView.context).inflate(R.layout.bottom_sheet_post_options, null)
+
+            val editPost = view.findViewById<TextView>(R.id.editPost)
+            val deletePost = view.findViewById<TextView>(R.id.deletePost)
+            val sharePost = view.findViewById<TextView>(R.id.sharePost)
+            val reportPost = view.findViewById<TextView>(R.id.reportPost)
+
+            if (!canChange) {
+                editPost.visibility = View.GONE
+                deletePost.visibility = View.GONE
+            }
+
+            // Add listener to detect when the sheet is opened
+            bottomSheetDialog.setOnShowListener {
+                itemView.animate()
+                    .scaleX(1.04f)
+                    .scaleY(1.04f)
+                    .setDuration(250)
+                    .setInterpolator(OvershootInterpolator())
+                    .start()
+            }
+
+            // Add listener to detect when the sheet is dismissed
+            bottomSheetDialog.setOnDismissListener {
+                itemView.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(250)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
+
+            // Set click listeners
+            editPost.setOnClickListener {
+                bottomSheetDialog.dismiss()
+            }
+
+            deletePost.setOnClickListener {
+                deletePost(post.optInt("id"), itemView)
+                bottomSheetDialog.dismiss()
+            }
+
+            sharePost.setOnClickListener {
+                sharePost(post.optInt("id"))
+                bottomSheetDialog.dismiss()
+            }
+
+            reportPost.setOnClickListener {
+                bottomSheetDialog.dismiss()
+            }
+
+            bottomSheetDialog.setContentView(view)
+            bottomSheetDialog.window?.setDimAmount(0.0f) // Adjust opacity (0.0 = no dim, 1.0 = full black)
+
+            bottomSheetDialog.show()
+        }
+
+
+        private fun sharePost(postId: Int) {
+            val shareText = "Polled\nLook at this cool post I found on Polled, https://polled.levgames.nl/?post=$postId"
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share post via"))
+        }
+
+        private fun deletePost(postId: Int, itemView: View) {
+            val client = OkHttpClient()
+
+            // Prepare the form data
+            val formData = FormBody.Builder()
+                .add("id", postId.toString())
+                .build()
+
+            // Create the request
+            val request = Request.Builder()
+                .url("https://levgames.nl/polled/api/v1/timeline")
+                .delete(formData)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .build()
+
+            // Execute the request asynchronously
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    // Handle failure
+                    e.printStackTrace()
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    if (response.isSuccessful) {
+                        val responseData = response.body?.string()
+                        // Handle successful response
+                        val jsonResponse = JSONObject(responseData)
+                        if (jsonResponse.optString("status") == "success") {
+                            // Success
+                            println("Post deleted successfully: $jsonResponse")
+
+                            // Post to main thread to update the UI
+                            itemView.post {
+                                // Get the position of the current item
+                                val position = adapterPosition
+
+                                // If the position is valid, remove the item from the list
+                                if (position != RecyclerView.NO_POSITION) {
+                                    // Notify the adapter to remove the item
+                                    val updatedList = currentList.toMutableList()
+                                    updatedList.removeAt(position) // Remove item at position
+                                    submitList(updatedList) // Submit the updated list to the adapter
+                                } else {
+                                    Log.d("TimelineAdapter", "Invalid position: $position")
+                                }
+                            }
+                        } else {
+                            // Failure
+                            val error = jsonResponse.optString("error")
+                            val message = jsonResponse.optString("message")
+                            throw IOException("Error: $error\n$message")
+                        }
+                    } else {
+                        // Handle non-200 response
+                        println("Request failed with code: ${response.code}")
+                    }
+                }
+            })
+        }
+
+
+
+
+
         private fun displayPoll(poll: JSONObject) {
             pollLayout.visibility = View.VISIBLE  // Show the poll layout
 
@@ -255,5 +417,6 @@ class TimelineAdapter : ListAdapter<JSONObject, TimelineAdapter.TimelineViewHold
 
 
     }
+
 
 }
