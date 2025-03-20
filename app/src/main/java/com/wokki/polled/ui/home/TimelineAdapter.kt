@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.wokki.polled.MainActivity
 import com.wokki.polled.R
 import okhttp3.Call
 import okhttp3.Callback
@@ -43,6 +44,8 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
     private val sharedPreferences = context.getSharedPreferences("user_prefs", MODE_PRIVATE)
     private val accessToken = sharedPreferences.getString("access_token", null)
+
+
 
     // DiffUtil callback for efficient updates
     class TimelineDiffCallback : DiffUtil.ItemCallback<JSONObject>() {
@@ -186,7 +189,10 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 val truncatedMessage = message.substring(0, 300) + "..."
 
                 // Set the truncated message
-                messageText.text = truncatedMessage
+                translateMessageInAdapter(truncatedMessage) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    messageText.text = translatedText
+                }
 
                 // Add a "Read more" button dynamically
                 val readMoreButton = Button(itemView.context)
@@ -201,7 +207,10 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Set the listener for the "Read more" button
                 readMoreButton.setOnClickListener {
                     // When the button is clicked, show the full message
-                    messageText.text = message
+                    translateMessageInAdapter(message) { translatedText ->
+                        // Set the translated text to the messageText TextView
+                        messageText.text = translatedText
+                    }
 
                     // Optionally, you can hide the "Read more" button after it's clicked
                     // Or make the button text change to "Read less"
@@ -218,9 +227,14 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 buttonContainer.removeAllViews()
                 buttonContainer.addView(readMoreButton)
             } else {
-                // If message is not longer than 300 characters, just display it
-                messageText.text = message
+
+                translateMessageInAdapter(message) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    messageText.text = translatedText
+                }
+
             }
+
 
 
 
@@ -242,6 +256,8 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
             }
         }
+
+
 
         private fun showPostOptions(post: JSONObject, canChange: Boolean) {
             val bottomSheetDialog = BottomSheetDialog(itemView.context)
@@ -374,9 +390,6 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         }
 
 
-
-
-
         private fun displayPoll(poll: JSONObject) {
             pollLayout.visibility = View.VISIBLE  // Show the poll layout
 
@@ -398,6 +411,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 val optionView = LayoutInflater.from(itemView.context).inflate(R.layout.poll_option_item, pollOptionsContainer, false)
                 val optionTextView = optionView.findViewById<TextView>(R.id.pollOptionText)  // For the option text
                 val percentageTextView = optionView.findViewById<TextView>(R.id.pollPercentage)  // For the percentage
+                val progressBarBackground = optionView.findViewById<LinearLayout>(R.id.progressBarBackground)
 
                 // Decode the HTML-encoded string back to normal
                 val decodedText = Html.fromHtml(optionText).toString()
@@ -408,12 +422,76 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Set the percentage text to the percentage view
                 percentageTextView.text = "$percentage%"
 
+                // Use post to ensure the layout is measured before setting the progress bar width
+                optionView.post {
+                    // Get the width of the parent container (pollOptionsContainer)
+                    val progressBarWidth = (percentage / 100f) * pollOptionsContainer.width
+
+                    // Set the progress bar width directly
+                    val params = progressBarBackground.layoutParams
+                    params.width = progressBarWidth.toInt() // Set the width dynamically
+                    progressBarBackground.layoutParams = params
+                }
+
+                optionView.setOnClickListener {
+                    voteOption(poll.optInt("id"), option.optInt("id"), poll.optInt("total_votes"), votes, poll.optInt("multiple"), poll.optBoolean("voted"))
+                }
+
                 // Add the option to the container
                 pollOptionsContainer.addView(optionView)
             }
         }
 
 
+
+
+        fun voteOption(pollId: Int, optionId: Int, totalVotes: Int, votes: Int, multiple: Int, voted: Boolean) {
+            val formBody = FormBody.Builder()
+                .add("poll_id", pollId.toString())
+                .add("option_id", optionId.toString())
+                .add("method", "vote")
+                .build()
+
+            val request = Request.Builder()
+                .url("https://levgames.nl/polled/api/v1/vote")
+                .post(formBody)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .build()
+
+            val client = OkHttpClient()
+            client.newCall(request).enqueue(object : Callback {
+                override fun onResponse(call: Call, response: Response) {
+                    if (response.isSuccessful) {
+                        val data = response.body?.string()
+                        val jsonResponse = JSONObject(data)
+
+                        if (jsonResponse.getString("status") == "success") {
+
+
+
+
+                        } else {
+                            println("Error: ${jsonResponse.getString("error")}")
+                        }
+                    } else {
+                        println("Network response was not ok, status: ${response.code}")
+                    }
+                }
+
+                override fun onFailure(call: Call, e: IOException) {
+                    println("Request failed: ${e.message}")
+                }
+            })
+        }
+
+
+        private fun translateMessageInAdapter(message: String, callback: (String) -> Unit) {
+            if (context is MainActivity) {
+                context.translateMessage(message) { translatedText ->
+                    callback(translatedText)  // Return the translated text via the callback
+                }
+            }
+        }
 
 
     }

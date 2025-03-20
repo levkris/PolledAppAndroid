@@ -2,6 +2,8 @@ package com.wokki.polled
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -10,12 +12,19 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.TranslatorOptions
 import com.wokki.polled.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+
+    private val targetLanguage = Locale.getDefault().language
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,5 +91,44 @@ class MainActivity : AppCompatActivity() {
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
         return sharedPreferences.getBoolean("is_logged_in", false)
     }
+
+
+
+
+    // Function to translate the message dynamically
+    fun translateMessage(message: String, onTranslated: (String) -> Unit) {
+        val options = TranslatorOptions.Builder()
+            .setSourceLanguage(TranslateLanguage.ENGLISH)  // Assuming message is in English
+            .setTargetLanguage(targetLanguage)  // Set this dynamically based on the user's language
+            .build()
+
+        val translator = Translation.getClient(options)
+
+        // Download the model if it's not already downloaded
+        translator.downloadModelIfNeeded()
+            .addOnSuccessListener {
+                // If the model is downloaded successfully, translate the message
+                translator.translate(message)
+                    .addOnSuccessListener { translatedText ->
+                        // Return the translated text via the callback, update UI on main thread
+                        Handler(Looper.getMainLooper()).post {
+                            onTranslated(translatedText)
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        // If translation fails, return the original message
+                        Handler(Looper.getMainLooper()).post {
+                            onTranslated(message)
+                        }
+                    }
+            }
+            .addOnFailureListener { exception ->
+                // If the model download fails, return the original message
+                Handler(Looper.getMainLooper()).post {
+                    onTranslated(message)
+                }
+            }
+    }
+
 }
 

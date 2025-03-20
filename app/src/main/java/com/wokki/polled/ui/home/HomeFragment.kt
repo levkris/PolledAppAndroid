@@ -73,12 +73,14 @@ class HomeFragment : Fragment() {
     private lateinit var bannedUsernameTextView: TextView
     private lateinit var appealBanButton: Button
 
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         homeViewModel = ViewModelProvider(this).get(HomeViewModel::class.java)
+
 
 
         // Start internet check loop
@@ -128,7 +130,6 @@ class HomeFragment : Fragment() {
         } else {
             searchIcon.setImageResource(R.drawable.ic_search_black_24dp) // Light mode
         }
-
 
 
         // Observe ViewModel for timeline data and update UI
@@ -202,7 +203,7 @@ class HomeFragment : Fragment() {
         fetchDataFromApi()
     }
 
-    private fun fetchData(forceRefresh: Boolean) {
+    fun fetchData(forceRefresh: Boolean) {
         // If forceRefresh is true, perform a new API call, otherwise, use cached data
         if (forceRefresh) {
             // Reset offset to 0 and fetch new data
@@ -404,6 +405,5 @@ class HomeFragment : Fragment() {
         _binding = null
         handler.removeCallbacks(internetCheckRunnable) // Stop checking when fragment is destroyed
     }
-
 
 }
