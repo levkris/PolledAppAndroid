@@ -257,7 +257,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             // Poll Handling
             val poll = timelineItem.optJSONObject("poll")
             if (poll != null) {
-                displayPoll(poll)  // Call displayPoll to handle the poll section
+                displayPoll(poll, true)  // Call displayPoll to handle the poll section
             } else {
                 pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
             }
@@ -392,6 +392,14 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 true // Return true to indicate the event is handled
             }
 
+            // Poll Handling
+            val poll = timeLineItem.optJSONObject("poll")
+            if (poll != null) {
+                displayPoll(poll, false)  // Call displayPoll to handle the poll section
+            } else {
+                pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
+            }
+
         }
 
         fun translatePostAsOption(message: String, timeLineItem: JSONObject, canChange: Boolean) {
@@ -451,6 +459,14 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             itemView.setOnLongClickListener {
                 showPostOptions(timeLineItem, canChange, true)
                 true // Return true to indicate the event is handled
+            }
+
+            // Poll Handling
+            val poll = timeLineItem.optJSONObject("poll")
+            if (poll != null) {
+                displayPoll(poll, true)  // Call displayPoll to handle the poll section
+            } else {
+                pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
             }
         }
 
@@ -525,17 +541,20 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         }
 
 
-        private fun displayPoll(poll: JSONObject) {
+        private fun displayPoll(poll: JSONObject, translated: Boolean) {
             pollLayout.visibility = View.VISIBLE  // Show the poll layout
 
             // Set the poll question
             pollQuestionText.text = poll.optString("question")
 
             // Set the decoded text to the option text view
-            translateMessageInAdapter(poll.optString("question")) { translatedText ->
-                // Set the translated text to the messageText TextView
-                pollQuestionText.text = translatedText
+            if (translated) {
+                translateMessageInAdapter(poll.optString("question")) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    pollQuestionText.text = translatedText
+                }
             }
+
 
             // Clear existing options in the pollOptionsContainer
             pollOptionsContainer.removeAllViews()
@@ -558,12 +577,13 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 val decodedText = Html.fromHtml(optionText).toString()
 
                 optionTextView.text = decodedText
-                // Set the decoded text to the option text view
-                translateMessageInAdapter(decodedText) { translatedText ->
-                    // Set the translated text to the messageText TextView
-                    optionTextView.text = translatedText
+                if (translated) {
+                    // Set the decoded text to the option text view
+                    translateMessageInAdapter(decodedText) { translatedText ->
+                        // Set the translated text to the messageText TextView
+                        optionTextView.text = translatedText
+                    }
                 }
-
 
                 // Set the percentage text to the percentage view
                 percentageTextView.text = "$percentage%"
