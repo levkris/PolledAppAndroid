@@ -20,6 +20,13 @@
     <string name="share">Share</string>
     <string name="edited">Edited</string>
     <string name="read_more">Read more</string>
+    <string name="sec">sec</string>
+    <string name="min">min</string>
+    <string name="hour">hour</string>
+    <string name="hours">hours</string>
+    <string name="day">day</string>
+    <string name="days">days</string>
+
 
 
 

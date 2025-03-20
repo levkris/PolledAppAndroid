@@ -80,12 +80,12 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
         // Create the full text
         var resultText = when {
-            diffInSeconds < 60 -> "$diffInSeconds sec"
-            diffInMinutes < 60 -> "$diffInMinutes min"
-            diffInHours < 2 -> "1 hour"
-            diffInHours < 24 -> "$diffInHours hours"
-            diffInDays < 2 -> "1 day"
-            diffInDays < 7 -> "$diffInDays days"
+            diffInSeconds < 60 -> "$diffInSeconds ${context.getString(R.string.sec)}"
+            diffInMinutes < 60 -> "$diffInMinutes ${context.getString(R.string.min)}"
+            diffInHours < 2 -> "1 ${context.getString(R.string.hour)}"
+            diffInHours < 24 -> "$diffInHours ${context.getString(R.string.hours)}"
+            diffInDays < 2 -> "1 ${context.getString(R.string.day)}"
+            diffInDays < 7 -> "$diffInDays ${context.getString(R.string.days)}"
             eventYear == currentYear -> {
                 // If the event is in the same year, format as dd/MM HH:mm
                 val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
@@ -186,6 +186,8 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 val truncatedMessage = message.substring(0, 300) + "..."
 
                 messageText.text = truncatedMessage
+
+
                 // Set the truncated message
                 translateMessageInAdapter(truncatedMessage) { translatedText ->
                     // Set the translated text to the messageText TextView

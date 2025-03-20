@@ -19,7 +19,12 @@
     <string name="report">Rapporteer</string>
     <string name="share">Deel</string>
     <string name="edited">Bewerkt</string>
-
+    <string name="sec">sec</string>
+    <string name="min">min</string>
+    <string name="hour">uur</string>
+    <string name="hours">uren</string>
+    <string name="day">dag</string>
+    <string name="days">dagen</string>
 
     <string name="read_more">Lees meer</string>
     <string name="login_message">Je moet inloggen om Polled te gebruiken</string>
