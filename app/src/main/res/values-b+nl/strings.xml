@@ -18,9 +18,10 @@
     <string name="see_original">Zie origineel</string>
     <string name="report">Rapporteer</string>
     <string name="share">Deel</string>
+    <string name="edited">Bewerkt</string>
 
 
-
-
+    <string name="read_more">Lees meer</string>
     <string name="login_message">Je moet inloggen om Polled te gebruiken</string>
+    <string name="read_less">Lees minder</string>
 </resources>

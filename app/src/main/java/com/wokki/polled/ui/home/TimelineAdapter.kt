@@ -59,7 +59,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
     }
 
 
-    fun formatDate(dateString: String, edited: Boolean = false): CharSequence {
+    fun formatDate(dateString: String, isEdited: Boolean = false): CharSequence {
         val now = System.currentTimeMillis()
         val eventDate = parseDate(dateString)
 
@@ -76,7 +76,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         val eventYear = Calendar.getInstance().apply { time = eventDate }.get(Calendar.YEAR)
 
         // Create the "Edited" text if necessary
-        val editedText = if (edited) "Edited " else ""
+        val editedText = if (isEdited) "${context.getString(R.string.edited)} " else ""
 
         // Create the full text
         var resultText = when {
@@ -185,6 +185,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Truncate the message and add "..."
                 val truncatedMessage = message.substring(0, 300) + "..."
 
+                messageText.text = truncatedMessage
                 // Set the truncated message
                 translateMessageInAdapter(truncatedMessage) { translatedText ->
                     // Set the translated text to the messageText TextView
@@ -194,7 +195,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                 // Add a "Read more" button dynamically
                 val readMoreButton = Button(itemView.context)
-                readMoreButton.text = "Read more"
+                readMoreButton.text = context.getString(R.string.read_more)
 
                 readMoreButton.setBackgroundColor(Color.TRANSPARENT);
                 readMoreButton.setTextColor(itemView.context.getColor(R.color.main))
@@ -212,10 +213,10 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                     // Optionally, you can hide the "Read more" button after it's clicked
                     // Or make the button text change to "Read less"
-                    readMoreButton.text = "Read less"
+                    readMoreButton.text = context.getString(R.string.read_less)
                     readMoreButton.setOnClickListener {
                         messageText.text = truncatedMessage
-                        readMoreButton.text = "Read more"
+                        readMoreButton.text = context.getString(R.string.read_more)
                     }
 
                 }
@@ -225,7 +226,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 buttonContainer.removeAllViews()
                 buttonContainer.addView(readMoreButton)
             } else {
-
+                messageText.text = message
                 translateMessageInAdapter(message) { translatedText ->
                     // Set the translated text to the messageText TextView
                     messageText.text = translatedText
@@ -348,7 +349,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                 // Add a "Read more" button dynamically
                 val readMoreButton = Button(itemView.context)
-                readMoreButton.text = "Read more"
+                readMoreButton.text = context.getString(R.string.read_more)
 
                 readMoreButton.setBackgroundColor(Color.TRANSPARENT);
                 readMoreButton.setTextColor(itemView.context.getColor(R.color.main))
@@ -364,10 +365,10 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                     // Optionally, you can hide the "Read more" button after it's clicked
                     // Or make the button text change to "Read less"
-                    readMoreButton.text = "Read less"
+                    readMoreButton.text = context.getString(R.string.read_less)
                     readMoreButton.setOnClickListener {
                         messageText.text = truncatedMessage
-                        readMoreButton.text = "Read more"
+                        readMoreButton.text = context.getString(R.string.read_more)
                     }
 
                 }
@@ -397,6 +398,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Truncate the message and add "..."
                 val truncatedMessage = message.substring(0, 300) + "..."
 
+                messageText.text = truncatedMessage
                 // Set the truncated message
                 translateMessageInAdapter(truncatedMessage) { translatedText ->
                     // Set the translated text to the messageText TextView
@@ -405,7 +407,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                 // Add a "Read more" button dynamically
                 val readMoreButton = Button(itemView.context)
-                readMoreButton.text = "Read more"
+                readMoreButton.text = context.getString(R.string.read_more)
 
                 readMoreButton.setBackgroundColor(Color.TRANSPARENT);
                 readMoreButton.setTextColor(itemView.context.getColor(R.color.main))
@@ -423,10 +425,10 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                     // Optionally, you can hide the "Read more" button after it's clicked
                     // Or make the button text change to "Read less"
-                    readMoreButton.text = "Read less"
+                    readMoreButton.text = context.getString(R.string.read_less)
                     readMoreButton.setOnClickListener {
                         messageText.text = truncatedMessage
-                        readMoreButton.text = "Read more"
+                        readMoreButton.text = context.getString(R.string.read_more)
                     }
 
                 }
@@ -436,7 +438,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 buttonContainer.removeAllViews()
                 buttonContainer.addView(readMoreButton)
             } else {
-
+                messageText.text = message
                 translateMessageInAdapter(message) { translatedText ->
                     // Set the translated text to the messageText TextView
                     messageText.text = translatedText
@@ -527,6 +529,12 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             // Set the poll question
             pollQuestionText.text = poll.optString("question")
 
+            // Set the decoded text to the option text view
+            translateMessageInAdapter(poll.optString("question")) { translatedText ->
+                // Set the translated text to the messageText TextView
+                pollQuestionText.text = translatedText
+            }
+
             // Clear existing options in the pollOptionsContainer
             pollOptionsContainer.removeAllViews()
 
@@ -547,8 +555,13 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Decode the HTML-encoded string back to normal
                 val decodedText = Html.fromHtml(optionText).toString()
 
-                // Set the decoded text to the option text view
                 optionTextView.text = decodedText
+                // Set the decoded text to the option text view
+                translateMessageInAdapter(decodedText) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    optionTextView.text = translatedText
+                }
+
 
                 // Set the percentage text to the percentage view
                 percentageTextView.text = "$percentage%"

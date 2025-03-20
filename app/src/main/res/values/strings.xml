@@ -18,9 +18,12 @@
     <string name="see_original">See original</string>
     <string name="report">Report</string>
     <string name="share">Share</string>
+    <string name="edited">Edited</string>
+    <string name="read_more">Read more</string>
 
 
 
 
     <string name="login_message">You have to login to use Polled</string>
+    <string name="read_less">Read less</string>
 </resources>
