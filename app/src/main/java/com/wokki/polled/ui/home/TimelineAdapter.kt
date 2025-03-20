@@ -159,11 +159,8 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
             val canChange = timelineItem.optBoolean("can_change")
 
+            var translated = false
 
-            itemView.setOnLongClickListener {
-                showPostOptions(timelineItem, canChange)
-                true // Return true to indicate the event is handled
-            }
 
 
             // Construct the profile picture URL dynamically
@@ -183,6 +180,218 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             // Message Text
             val message = timelineItem.optString("message")
 
+            // Check if message is longer than 273 characters
+            if (message.length > 273) {
+                // Truncate the message and add "..."
+                val truncatedMessage = message.substring(0, 300) + "..."
+
+                // Set the truncated message
+                translateMessageInAdapter(truncatedMessage) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    messageText.text = translatedText
+                    translated = true
+                }
+
+                // Add a "Read more" button dynamically
+                val readMoreButton = Button(itemView.context)
+                readMoreButton.text = "Read more"
+
+                readMoreButton.setBackgroundColor(Color.TRANSPARENT);
+                readMoreButton.setTextColor(itemView.context.getColor(R.color.main))
+                readMoreButton.textSize = 14f
+                readMoreButton.setPadding(0, 0, 0, 0)
+                readMoreButton.setTypeface(readMoreButton.typeface, Typeface.BOLD)
+
+                // Set the listener for the "Read more" button
+                readMoreButton.setOnClickListener {
+                    // When the button is clicked, show the full message
+                    translateMessageInAdapter(message) { translatedText ->
+                        // Set the translated text to the messageText TextView
+                        messageText.text = translatedText
+                    }
+
+                    // Optionally, you can hide the "Read more" button after it's clicked
+                    // Or make the button text change to "Read less"
+                    readMoreButton.text = "Read less"
+                    readMoreButton.setOnClickListener {
+                        messageText.text = truncatedMessage
+                        readMoreButton.text = "Read more"
+                    }
+
+                }
+
+                // Add the "Read more" button to the layout (ensure it has space in your layout)
+                val buttonContainer = itemView.findViewById<LinearLayout>(R.id.buttonContainer)  // Make sure you have a container in your layout
+                buttonContainer.removeAllViews()
+                buttonContainer.addView(readMoreButton)
+            } else {
+
+                translateMessageInAdapter(message) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    messageText.text = translatedText
+                    translated = true
+                }
+
+            }
+
+            itemView.setOnLongClickListener {
+                showPostOptions(timelineItem, canChange, translated)
+                true // Return true to indicate the event is handled
+            }
+
+
+
+
+            val edited = timelineItem.optInt("edited") == 1
+
+            val date = timelineItem.optString("created_at")
+            dateText.text = formatDate(date, edited)
+
+            // Check for verification status
+            val isVerified = timelineItem.optInt("verified") == 1
+            verifiedIcon.visibility = if (isVerified) View.VISIBLE else View.GONE
+
+            // Poll Handling
+            val poll = timelineItem.optJSONObject("poll")
+            if (poll != null) {
+                displayPoll(poll)  // Call displayPoll to handle the poll section
+            } else {
+                pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
+            }
+        }
+
+
+
+        private fun showPostOptions(post: JSONObject, canChange: Boolean, translated: Boolean) {
+            val bottomSheetDialog = BottomSheetDialog(itemView.context)
+            val view = LayoutInflater.from(itemView.context).inflate(R.layout.bottom_sheet_post_options, null)
+
+            val editPost = view.findViewById<TextView>(R.id.editPost)
+            val deletePost = view.findViewById<TextView>(R.id.deletePost)
+            val sharePost = view.findViewById<TextView>(R.id.sharePost)
+            val reportPost = view.findViewById<TextView>(R.id.reportPost)
+            val translatePost = view.findViewById<TextView>(R.id.translatePost)
+
+            if (translated) {
+                translatePost.text = context.getString(R.string.see_original)
+            } else {
+                translatePost.text = context.getString(R.string.translate)
+            }
+
+            if (!canChange) {
+                editPost.visibility = View.GONE
+                deletePost.visibility = View.GONE
+            }
+
+            // Add listener to detect when the sheet is opened
+            bottomSheetDialog.setOnShowListener {
+                itemView.animate()
+                    .scaleX(1.04f)
+                    .scaleY(1.04f)
+                    .setDuration(250)
+                    .setInterpolator(OvershootInterpolator())
+                    .start()
+            }
+
+            // Add listener to detect when the sheet is dismissed
+            bottomSheetDialog.setOnDismissListener {
+                itemView.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(250)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
+
+            // Set click listeners
+            editPost.setOnClickListener {
+                bottomSheetDialog.dismiss()
+            }
+
+            deletePost.setOnClickListener {
+                deletePost(post.optInt("id"), itemView)
+                bottomSheetDialog.dismiss()
+            }
+
+            sharePost.setOnClickListener {
+                sharePost(post.optInt("id"))
+                bottomSheetDialog.dismiss()
+            }
+
+            reportPost.setOnClickListener {
+                bottomSheetDialog.dismiss()
+            }
+
+            translatePost.setOnClickListener {
+                if (translated) {
+                    seeOriginalPost(post.optString("message"), post, canChange)
+                } else {
+                    translatePostAsOption(post.optString("message"), post, canChange)
+                }
+                bottomSheetDialog.dismiss()
+            }
+
+            bottomSheetDialog.setContentView(view)
+            bottomSheetDialog.window?.setDimAmount(0.0f) // Adjust opacity (0.0 = no dim, 1.0 = full black)
+
+            bottomSheetDialog.show()
+        }
+
+        fun seeOriginalPost(message: String, timeLineItem: JSONObject, canChange: Boolean) {
+            // Check if message is longer than 273 characters
+            if (message.length > 273) {
+                // Truncate the message and add "..."
+                val truncatedMessage = message.substring(0, 300) + "..."
+
+                messageText.text = truncatedMessage
+
+
+                // Add a "Read more" button dynamically
+                val readMoreButton = Button(itemView.context)
+                readMoreButton.text = "Read more"
+
+                readMoreButton.setBackgroundColor(Color.TRANSPARENT);
+                readMoreButton.setTextColor(itemView.context.getColor(R.color.main))
+                readMoreButton.textSize = 14f
+                readMoreButton.setPadding(0, 0, 0, 0)
+                readMoreButton.setTypeface(readMoreButton.typeface, Typeface.BOLD)
+
+                // Set the listener for the "Read more" button
+                readMoreButton.setOnClickListener {
+                    // When the button is clicked, show the full message
+                    messageText.text = message
+
+
+                    // Optionally, you can hide the "Read more" button after it's clicked
+                    // Or make the button text change to "Read less"
+                    readMoreButton.text = "Read less"
+                    readMoreButton.setOnClickListener {
+                        messageText.text = truncatedMessage
+                        readMoreButton.text = "Read more"
+                    }
+
+                }
+
+                // Add the "Read more" button to the layout (ensure it has space in your layout)
+                val buttonContainer = itemView.findViewById<LinearLayout>(R.id.buttonContainer)  // Make sure you have a container in your layout
+                buttonContainer.removeAllViews()
+                buttonContainer.addView(readMoreButton)
+            } else {
+
+                messageText.text = message
+
+
+            }
+
+
+            itemView.setOnLongClickListener {
+                showPostOptions(timeLineItem, canChange, false)
+                true // Return true to indicate the event is handled
+            }
+
+        }
+
+        fun translatePostAsOption(message: String, timeLineItem: JSONObject, canChange: Boolean) {
             // Check if message is longer than 273 characters
             if (message.length > 273) {
                 // Truncate the message and add "..."
@@ -235,89 +444,11 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
             }
 
-
-
-
-
-            val edited = timelineItem.optInt("edited") == 1
-
-            val date = timelineItem.optString("created_at")
-            dateText.text = formatDate(date, edited)
-
-            // Check for verification status
-            val isVerified = timelineItem.optInt("verified") == 1
-            verifiedIcon.visibility = if (isVerified) View.VISIBLE else View.GONE
-
-            // Poll Handling
-            val poll = timelineItem.optJSONObject("poll")
-            if (poll != null) {
-                displayPoll(poll)  // Call displayPoll to handle the poll section
-            } else {
-                pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
+            itemView.setOnLongClickListener {
+                showPostOptions(timeLineItem, canChange, true)
+                true // Return true to indicate the event is handled
             }
         }
-
-
-
-        private fun showPostOptions(post: JSONObject, canChange: Boolean) {
-            val bottomSheetDialog = BottomSheetDialog(itemView.context)
-            val view = LayoutInflater.from(itemView.context).inflate(R.layout.bottom_sheet_post_options, null)
-
-            val editPost = view.findViewById<TextView>(R.id.editPost)
-            val deletePost = view.findViewById<TextView>(R.id.deletePost)
-            val sharePost = view.findViewById<TextView>(R.id.sharePost)
-            val reportPost = view.findViewById<TextView>(R.id.reportPost)
-
-            if (!canChange) {
-                editPost.visibility = View.GONE
-                deletePost.visibility = View.GONE
-            }
-
-            // Add listener to detect when the sheet is opened
-            bottomSheetDialog.setOnShowListener {
-                itemView.animate()
-                    .scaleX(1.04f)
-                    .scaleY(1.04f)
-                    .setDuration(250)
-                    .setInterpolator(OvershootInterpolator())
-                    .start()
-            }
-
-            // Add listener to detect when the sheet is dismissed
-            bottomSheetDialog.setOnDismissListener {
-                itemView.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(250)
-                    .setInterpolator(DecelerateInterpolator())
-                    .start()
-            }
-
-            // Set click listeners
-            editPost.setOnClickListener {
-                bottomSheetDialog.dismiss()
-            }
-
-            deletePost.setOnClickListener {
-                deletePost(post.optInt("id"), itemView)
-                bottomSheetDialog.dismiss()
-            }
-
-            sharePost.setOnClickListener {
-                sharePost(post.optInt("id"))
-                bottomSheetDialog.dismiss()
-            }
-
-            reportPost.setOnClickListener {
-                bottomSheetDialog.dismiss()
-            }
-
-            bottomSheetDialog.setContentView(view)
-            bottomSheetDialog.window?.setDimAmount(0.0f) // Adjust opacity (0.0 = no dim, 1.0 = full black)
-
-            bottomSheetDialog.show()
-        }
-
 
         private fun sharePost(postId: Int) {
             val shareText = "Polled\nLook at this cool post I found on Polled, https://polled.levgames.nl/?post=$postId"

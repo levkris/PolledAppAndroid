@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Polled</string>
+    <string name="title_home">Home</string>
+    <string name="title_post">Post</string>
+    <string name="title_profile">Profile</string>
+    <string name="create_account">Maak Account</string>
+    <string name="login">Inloggen</string>
+    <string name="logout">Uitloggen</string>
+    <string name="noInternet">Geen internet connectie</string>
+    <string name="banned_message">Je bent verbannen van Polled</string>
+    <string name="banned_reason">Reden: </string>
+    <string name="banned_username">Gebruikersnaam: </string>
+    <string name="appeal_text">Unban aanvragen</string>
+    <string name="cancel">Sluiten</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Verwijderen</string>
+    <string name="translate">Vertalen</string>
+    <string name="see_original">Zie origineel</string>
+    <string name="report">Rapporteer</string>
+    <string name="share">Deel</string>
+
+
+
+
+    <string name="login_message">Je moet inloggen om Polled te gebruiken</string>
+</resources>

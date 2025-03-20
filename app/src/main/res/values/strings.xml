@@ -11,8 +11,13 @@
     <string name="banned_reason">Reason: </string>
     <string name="banned_username">Username: </string>
     <string name="appeal_text">Appeal ban</string>
-    <string name="option_text">%s</string>
-    <string name="message">%1$s</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="translate">Translate</string>
+    <string name="see_original">See original</string>
+    <string name="report">Report</string>
+    <string name="share">Share</string>
 
 
 
