@@ -6,7 +6,6 @@
     android:background="@drawable/bottom_sheet_background"
     android:padding="16dp">
 
-
     <TextView
         android:id="@+id/translatePost"
         android:layout_width="match_parent"
@@ -16,7 +15,9 @@
         android:textSize="18sp"
         android:textColor="?attr/android:textColorPrimary"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        android:drawableLeft="@drawable/ic_translate"
+        android:drawablePadding="8dp" />
 
     <TextView
         android:id="@+id/sharePost"
@@ -27,7 +28,9 @@
         android:textSize="18sp"
         android:textColor="?attr/android:textColorPrimary"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        android:drawableLeft="@drawable/ic_share"
+        android:drawablePadding="8dp" />
 
     <TextView
         android:id="@+id/editPost"
@@ -39,7 +42,9 @@
         android:padding="12dp"
         android:text="@string/edit"
         android:textColor="?attr/android:textColorPrimary"
-        android:textSize="18sp" />
+        android:textSize="18sp"
+        android:drawableLeft="@drawable/ic_edit"
+        android:drawablePadding="8dp" />
 
     <TextView
         android:id="@+id/deletePost"
@@ -50,7 +55,9 @@
         android:textSize="18sp"
         android:textColor="@android:color/holo_red_light"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        android:drawableLeft="@drawable/ic_delete"
+        android:drawablePadding="8dp" />
 
     <TextView
         android:id="@+id/reportPost"
@@ -61,6 +68,8 @@
         android:textSize="18sp"
         android:textColor="@android:color/holo_red_light"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        android:drawableLeft="@drawable/ic_report"
+        android:drawablePadding="8dp" />
 
 </LinearLayout>

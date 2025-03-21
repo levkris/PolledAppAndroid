@@ -223,6 +223,7 @@ class HomeFragment : Fragment() {
             binding.noInternetBanner.visibility = View.VISIBLE
             binding.noInternetWarning.visibility = View.VISIBLE
             swipeRefreshLayout.isRefreshing = false
+            homeViewModel.setTimelineData(emptyList())
             return
         } else {
             binding.noInternetBanner.visibility = View.GONE
@@ -275,6 +276,7 @@ class HomeFragment : Fragment() {
         override fun onPostExecute(result: String) {
             super.onPostExecute(result)
             swipeRefreshLayout.isRefreshing = false // Stop refreshing animation
+            homeViewModel.setTimelineData(emptyList())
             loading = false // Reset loading flag
 
             // Log the raw response
