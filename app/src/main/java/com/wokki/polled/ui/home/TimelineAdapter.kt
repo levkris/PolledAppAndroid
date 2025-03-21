@@ -27,6 +27,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.wokki.polled.FullPostActivity
 import com.wokki.polled.MainActivity
 import com.wokki.polled.R
+import io.noties.markwon.Markwon
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.FormBody
@@ -155,6 +156,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         private val pollLayout: LinearLayout = itemView.findViewById(R.id.pollLayout)  // Assuming this is a LinearLayout
         private val pollQuestionText: TextView = itemView.findViewById(R.id.pollQuestionText)  // TextView for poll question
         private val pollOptionsContainer: LinearLayout = itemView.findViewById(R.id.pollOptionsContainer)  // LinearLayout for options
+        val markwon = Markwon.create(context)
 
         fun bind(timelineItem: JSONObject) {
 
@@ -190,7 +192,8 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Truncate the message and add "..."
                 val truncatedMessage = message.substring(0, 300) + "..."
 
-                messageText.text = truncatedMessage
+                markwon.setMarkdown(messageText, truncatedMessage)
+
 
 
                 // Set the truncated message
@@ -215,14 +218,14 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                     // When the button is clicked, show the full message
                     translateMessageInAdapter(message) { translatedText ->
                         // Set the translated text to the messageText TextView
-                        messageText.text = translatedText
+                        markwon.setMarkdown(messageText, translatedText)
                     }
 
                     // Optionally, you can hide the "Read more" button after it's clicked
                     // Or make the button text change to "Read less"
                     readMoreButton.text = context.getString(R.string.read_less)
                     readMoreButton.setOnClickListener {
-                        messageText.text = truncatedMessage
+                        markwon.setMarkdown(messageText, truncatedMessage)
                         readMoreButton.text = context.getString(R.string.read_more)
                     }
 
@@ -233,10 +236,11 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 buttonContainer.removeAllViews()
                 buttonContainer.addView(readMoreButton)
             } else {
-                messageText.text = message
+                markwon.setMarkdown(messageText, message)
+
                 translateMessageInAdapter(message) { translatedText ->
                     // Set the translated text to the messageText TextView
-                    messageText.text = translatedText
+                    markwon.setMarkdown(messageText, translatedText)
                     translated = true
                 }
 

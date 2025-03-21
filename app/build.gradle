@@ -64,5 +64,6 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1"  // Or a later version
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.3.1"   // Or a later version
     implementation 'com.google.mlkit:translate:17.0.1'
+    implementation 'io.noties.markwon:core:4.6.2' // Markwon for markdown parsing
 
 }

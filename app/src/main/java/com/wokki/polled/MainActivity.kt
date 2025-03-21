@@ -95,8 +95,15 @@ class MainActivity : AppCompatActivity() {
 
 
 
-    // Function to translate the message dynamically
     fun translateMessage(message: String, onTranslated: (String) -> Unit) {
+        // Replace markdown characters with placeholders
+        val escapedMessage = message
+            .replace("*", "\uE001")  // Escape '*' (used for bold, italics)
+            .replace("#", "\uE002")  // Escape '#' (used for headings)
+            .replace("_", "\uE003")  // Escape '_' (used for italic, underlining)
+            .replace("`", "\uE004")  // Escape '`' (used for code blocks)
+            .replace("\n", "\uE000") // Escape newline character
+
         val options = TranslatorOptions.Builder()
             .setSourceLanguage(TranslateLanguage.ENGLISH)  // Assuming message is in English
             .setTargetLanguage(targetLanguage)  // Set this dynamically based on the user's language
@@ -108,11 +115,19 @@ class MainActivity : AppCompatActivity() {
         translator.downloadModelIfNeeded()
             .addOnSuccessListener {
                 // If the model is downloaded successfully, translate the message
-                translator.translate(message)
+                translator.translate(escapedMessage)
                     .addOnSuccessListener { translatedText ->
+                        // Restore the markdown placeholders back to their original characters
+                        val formattedText = translatedText
+                            .replace("\uE001", "*")
+                            .replace("\uE002", "#")
+                            .replace("\uE003", "_")
+                            .replace("\uE004", "`")
+                            .replace("\uE000", "\n")
+
                         // Return the translated text via the callback, update UI on main thread
                         Handler(Looper.getMainLooper()).post {
-                            onTranslated(translatedText)
+                            onTranslated(formattedText)
                         }
                     }
                     .addOnFailureListener { exception ->

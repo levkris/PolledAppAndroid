@@ -1,10 +1,15 @@
 package com.wokki.polled
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
+import android.text.Html
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.StyleSpan
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
@@ -12,7 +17,15 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
+import io.noties.markwon.Markwon
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import org.json.JSONObject
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -23,11 +36,41 @@ class FullPostActivity : AppCompatActivity() {
 
     val context = this
 
+    // Declare the views at the top but initialize them later
+    private lateinit var profilePic: ImageView
+    private lateinit var userName: TextView
+    private lateinit var messageText: TextView
+    private lateinit var verifiedIcon: ImageView
+    private lateinit var dateText: TextView
+    private lateinit var pollLayout: LinearLayout
+    private lateinit var buttonContainer: LinearLayout
+    private lateinit var pollQuestionText: TextView
+    private lateinit var pollOptionsContainer: LinearLayout
+    private lateinit var sharedPreferences: SharedPreferences
+    private var accessToken: String? = null
+    private val mainActivity = this@FullPostActivity // Assuming FullPostActivity is started from MainActivity
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_full_post)
 
+        // Now initialize the views after setContentView
+        profilePic = findViewById(R.id.profilePic)
+        userName = findViewById(R.id.userName)
+        messageText = findViewById(R.id.messageText)
+        verifiedIcon = findViewById(R.id.verifiedIcon)
+        dateText = findViewById(R.id.dateText)
+        pollLayout = findViewById(R.id.pollLayout)
+        buttonContainer = findViewById(R.id.buttonContainer)
+        pollQuestionText = findViewById(R.id.pollQuestionText)
+        pollOptionsContainer = findViewById(R.id.pollOptionsContainer)
+        val markwon = Markwon.create(this)
+
         supportActionBar?.hide()
+
+        sharedPreferences = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        accessToken = sharedPreferences.getString("access_token", null)
 
         // Retrieve the JSON string from the intent
         val postString = intent.getStringExtra("POST_DATA")
@@ -39,23 +82,20 @@ class FullPostActivity : AppCompatActivity() {
             JSONObject()  // Default to an empty JSONObject if no data is found
         }
 
-        // Get the views from activity_full_post.xml
-        val profilePic: ImageView = findViewById(R.id.profilePic)
-        val userName: TextView = findViewById(R.id.userName)
-        val messageText: TextView = findViewById(R.id.messageText)
-        val verifiedIcon: ImageView = findViewById(R.id.verifiedIcon)
-        val dateText: TextView = findViewById(R.id.dateText)
-        val pollLayout: LinearLayout = findViewById(R.id.pollLayout)
-        val buttonContainer: LinearLayout = findViewById(R.id.buttonContainer)
+        val canChange = timelineItem.optBoolean("can_change")
+
+        var translated = false
+
 
         // Construct the profile picture URL dynamically
         val profilePictureUrl = "https://levgames.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
 
         // Load the profile picture using Glide
-        Glide.with(this)
+        Glide.with(context)
             .load(profilePictureUrl)
             .circleCrop()
             .into(profilePic)
+
 
         // Username
         val name = timelineItem.optString("maker")
@@ -63,38 +103,88 @@ class FullPostActivity : AppCompatActivity() {
 
         // Message Text
         val message = timelineItem.optString("message")
-        messageText.text = if (message.length > 273) {
-            message.substring(0, 300) + "..."
-        } else {
-            message
-        }
 
-        // Handle "Read More" / "Read Less"
+        // Check if message is longer than 273 characters
         if (message.length > 273) {
-            val readMoreButton = Button(this)
-            readMoreButton.text = getString(R.string.read_more)
+            // Truncate the message and add "..."
+            val truncatedMessage = message.substring(0, 300) + "..."
+
+            markwon.setMarkdown(messageText, truncatedMessage)
+
+            translateMessageInFullPost(truncatedMessage) { translatedText ->
+                // Set the translated text to the messageText TextView
+                markwon.setMarkdown(messageText, translatedText)
+                translated = true
+            }
+
+
+
+            // Add a "Read more" button dynamically
+            val readMoreButton = Button(context)
+            readMoreButton.text = context.getString(R.string.read_more)
+
+            readMoreButton.setBackgroundColor(Color.TRANSPARENT)
+            readMoreButton.setTextColor(context.getColor(R.color.main))
+            readMoreButton.textSize = 14f
+            readMoreButton.setPadding(0, 0, 0, 0)
+            readMoreButton.setTypeface(readMoreButton.typeface, Typeface.BOLD)
+
+            // Set the listener for the "Read more" button
             readMoreButton.setOnClickListener {
-                if (messageText.text.toString() == message) {
-                    messageText.text = message.substring(0, 300) + "..."
-                    readMoreButton.text = getString(R.string.read_more)
-                } else {
-                    messageText.text = message
-                    readMoreButton.text = getString(R.string.read_less)
+                markwon.setMarkdown(messageText, message)
+
+                translateMessageInFullPost(message) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    markwon.setMarkdown(messageText, translatedText)
+
+                }
+
+
+
+                // Optionally, you can hide the "Read more" button after it's clicked
+                // Or make the button text change to "Read less"
+                readMoreButton.text = context.getString(R.string.read_less)
+                readMoreButton.setOnClickListener {
+                    messageText.text = truncatedMessage
+                    readMoreButton.text = context.getString(R.string.read_more)
                 }
             }
 
+            // Add the "Read more" button to the layout (ensure it has space in your layout)
+            val buttonContainer = findViewById<LinearLayout>(R.id.buttonContainer)
             buttonContainer.removeAllViews()
             buttonContainer.addView(readMoreButton)
+        } else {
+            markwon.setMarkdown(messageText, message)
+
+
+            translateMessageInFullPost(message) { translatedText ->
+                // Set the translated text to the messageText TextView
+                markwon.setMarkdown(messageText, translatedText)
+                translated = true
+            }
+
+
         }
 
-        // Check for verification status
-        val isVerified = timelineItem.optInt("verified") == 1
-        verifiedIcon.visibility = if (isVerified) View.VISIBLE else View.GONE
+
 
         val edited = timelineItem.optInt("edited") == 1
 
         val date = timelineItem.optString("created_at")
         dateText.text = formatDate(date, edited)
+
+        // Check for verification status
+        val isVerified = timelineItem.optInt("verified") == 1
+        verifiedIcon.visibility = if (isVerified) View.VISIBLE else View.GONE
+
+        // Poll Handling
+        val poll = timelineItem.optJSONObject("poll")
+        if (poll != null) {
+            displayPoll(poll, true)  // Call displayPoll to handle the poll section
+        } else {
+            pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
+        }
     }
 
 
@@ -173,5 +263,133 @@ class FullPostActivity : AppCompatActivity() {
             Date() // Return the current date if parsing fails
         }
     }
+
+    private fun displayPoll(poll: JSONObject, translated: Boolean) {
+        pollLayout.visibility = View.VISIBLE  // Show the poll layout
+
+        // Set the poll question
+        pollQuestionText.text = poll.optString("question")
+
+        // Set the decoded text to the option text view
+        if (translated) {
+
+            translateMessageInFullPost(poll.optString("question")) { translatedText ->
+                // Set the translated text to the messageText TextView
+                pollQuestionText.text = translatedText
+            }
+
+        }
+
+
+        // Clear existing options in the pollOptionsContainer
+        pollOptionsContainer.removeAllViews()
+
+        // Add each poll option dynamically
+        val options = poll.optJSONArray("options")
+        for (i in 0 until options.length()) {
+            val option = options.getJSONObject(i)
+            val optionText = option.optString("text")
+            val percentage = option.optInt("percentage")
+            val votes = option.optInt("votes")
+
+            // Inflate the option item and find the TextViews inside it
+            val optionView = LayoutInflater.from(context).inflate(R.layout.poll_option_item, pollOptionsContainer, false)
+            val optionTextView = optionView.findViewById<TextView>(R.id.pollOptionText)  // For the option text
+            val percentageTextView = optionView.findViewById<TextView>(R.id.pollPercentage)  // For the percentage
+            val progressBarBackground = optionView.findViewById<LinearLayout>(R.id.progressBarBackground)
+
+            // Decode the HTML-encoded string back to normal
+            val decodedText = Html.fromHtml(optionText).toString()
+
+            optionTextView.text = decodedText
+            if (translated) {
+
+                translateMessageInFullPost(decodedText) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    optionTextView.text = translatedText
+                }
+
+
+            }
+
+            // Set the percentage text to the percentage view
+            percentageTextView.text = "$percentage%"
+
+            // Use post to ensure the layout is measured before setting the progress bar width
+            optionView.post {
+                // Get the width of the parent container (pollOptionsContainer)
+                val progressBarWidth = (percentage / 100f) * pollOptionsContainer.width
+
+                // Set the progress bar width directly
+                val params = progressBarBackground.layoutParams
+                params.width = progressBarWidth.toInt() // Set the width dynamically
+                progressBarBackground.layoutParams = params
+            }
+
+            optionView.setOnClickListener {
+                voteOption(poll.optInt("id"), option.optInt("id"), poll.optInt("total_votes"), votes, poll.optInt("multiple"), poll.optBoolean("voted"))
+            }
+
+            // Add the option to the container
+            pollOptionsContainer.addView(optionView)
+        }
+    }
+
+
+
+
+    fun voteOption(pollId: Int, optionId: Int, totalVotes: Int, votes: Int, multiple: Int, voted: Boolean) {
+        val formBody = FormBody.Builder()
+            .add("poll_id", pollId.toString())
+            .add("option_id", optionId.toString())
+            .add("method", "vote")
+            .build()
+
+        val request = Request.Builder()
+            .url("https://levgames.nl/polled/api/v1/vote")
+            .post(formBody)
+            .addHeader("Authorization", "Bearer $accessToken")
+            .build()
+
+        val client = OkHttpClient()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val data = response.body?.string()
+                    val jsonResponse = JSONObject(data)
+
+                    if (jsonResponse.getString("status") == "success") {
+
+
+
+
+                    } else {
+                        println("Error: ${jsonResponse.getString("error")}")
+                    }
+                } else {
+                    println("Network response was not ok, status: ${response.code}")
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                println("Request failed: ${e.message}")
+            }
+        })
+    }
+
+
+    private fun translateMessageInFullPost(message: String, callback: (String) -> Unit) {
+        // No need to get the activity since this is an Activity
+        val mainActivity = this as? MainActivity
+        mainActivity?.let {
+            it.translateMessage(message) { translatedText ->
+                callback(translatedText)  // Return the translated text via the callback
+            }
+        }
+    }
+
+
+
+
 }
 
