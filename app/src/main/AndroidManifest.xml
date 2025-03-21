@@ -47,5 +47,8 @@
             <!-- Add any intent filters if needed -->
         </activity>
 
+        <activity android:name=".FullPostActivity"></activity>
+
+
     </application>
 </manifest>

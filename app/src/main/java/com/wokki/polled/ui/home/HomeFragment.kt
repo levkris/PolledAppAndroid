@@ -30,7 +30,6 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-
 class HomeFragment : Fragment() {
 
     private var offset = 0
@@ -140,7 +139,7 @@ class HomeFragment : Fragment() {
                     val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                     val lastKnownPosition = layoutManager.findFirstVisibleItemPosition()
 
-                    val timelineAdapter = TimelineAdapter(requireContext()) // No parameters needed now
+                    val timelineAdapter = TimelineAdapter(requireContext()) // pass parentFragmentManager here
 
                     val timelineData: List<JSONObject> = timeline
 

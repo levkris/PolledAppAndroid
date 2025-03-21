@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.wokki.polled.FullPostActivity
 import com.wokki.polled.MainActivity
 import com.wokki.polled.R
 import okhttp3.Call
@@ -161,7 +162,11 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
             var translated = false
 
-
+            itemView.setOnClickListener {
+                val intent = Intent(context, FullPostActivity::class.java) // Use context passed to the adapter
+                intent.putExtra("POST_DATA", timelineItem.toString())
+                context.startActivity(intent)  // Start activity with context
+            }
 
             // Construct the profile picture URL dynamically
             val profilePictureUrl = "https://levgames.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
@@ -658,6 +663,12 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 }
             }
         }
+
+
+
+
+
+
 
 
     }
