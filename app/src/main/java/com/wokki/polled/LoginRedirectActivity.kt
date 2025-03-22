@@ -28,6 +28,7 @@ class LoginRedirectActivity : AppCompatActivity() {
         val uri: Uri? = intent?.data
         val code = uri?.getQueryParameter("code")
         val page = uri?.getQueryParameter("page")
+        val post = uri?.getQueryParameter("post")
 
         if (code != null) {
             // If the URI contains a code, exchange it for a token
@@ -39,6 +40,11 @@ class LoginRedirectActivity : AppCompatActivity() {
             val mainIntent = Intent(this, MainActivity::class.java).apply {
                 if (page != null) {
                     putExtra("page", page)  // Pass the page to MainActivity
+                }
+                if (post != null) {
+                    putExtra("post", post)  // Pass the post to MainActivity
+                } else {
+                    println("post is null")
                 }
             }
             startActivity(mainIntent)

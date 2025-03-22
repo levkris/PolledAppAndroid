@@ -24,6 +24,7 @@ import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -185,6 +186,12 @@ class FullPostActivity : AppCompatActivity() {
         } else {
             pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
         }
+
+        val comments = timelineItem.optJSONArray("comments")
+        if (comments != null) {
+            displayComments(comments)
+        }
+
     }
 
 
@@ -335,6 +342,64 @@ class FullPostActivity : AppCompatActivity() {
         }
     }
 
+
+    private fun displayComments(comments: JSONArray, nested: Boolean = false, parentContainer: LinearLayout? = null) {
+
+        var commentsContainer = parentContainer ?: findViewById<LinearLayout>(R.id.commentsContainer)
+
+        // Loop through the comments and add the item_comment layout for each
+        for (i in 0 until comments.length()) {
+            val commentObject = comments.getJSONObject(i)  // Get the comment object at position i
+            val commentMessage = commentObject.getString("message")  // Get the message field from the object
+
+            // Inflate the item_comment layout
+            val commentView = LayoutInflater.from(this).inflate(R.layout.item_comment, commentsContainer, false)
+
+            // Find the TextView and other elements inside the inflated layout
+            val commentTextView = commentView.findViewById<TextView>(R.id.commentMessageText)
+            val commentProfilePic = commentView.findViewById<ImageView>(R.id.commentProfilePic)
+            val commentUserName = commentView.findViewById<TextView>(R.id.commentUserName)
+            val commentDateText = commentView.findViewById<TextView>(R.id.commentDateText)
+            val commentVerifiedIcon = commentView.findViewById<ImageView>(R.id.commentVerifiedIcon)
+
+            // Set the comment message text
+            commentTextView.text = commentMessage
+
+            // Construct the profile picture URL dynamically
+            val profilePictureUrl = "https://levgames.nl/polled/api/v1/users/" + commentObject.optString("maker_url") + "/" + commentObject.optString("maker_image")
+
+            // Load the profile picture using Glide
+            Glide.with(context)
+                .load(profilePictureUrl)
+                .circleCrop()
+                .into(commentProfilePic)
+
+            // Set username and other details
+            val name = commentObject.optString("maker")
+            commentUserName.text = name
+
+            val edited = commentObject.optInt("edited") == 1
+            val date = commentObject.optString("created_at")
+            commentDateText.text = formatDate(date, edited)
+
+            // Check for verification status
+            val isVerified = commentObject.optInt("verified") == 1
+            commentVerifiedIcon.visibility = if (isVerified) View.VISIBLE else View.GONE
+
+            // Add the inflated layout to the comments container
+            commentsContainer.addView(commentView)
+
+            // Find the nested comments container within the current comment view
+            val nestedCommentsContainer = commentView.findViewById<LinearLayout>(R.id.nestedCommentsContainer)
+
+            // If nested comments exist, recursively display them
+            val nestedComments = commentObject.optJSONArray("comments")
+            if (nestedComments != null && nestedComments.length() > 0) {
+                // Pass the nestedCommentsContainer as parent for recursive call
+                displayComments(nestedComments, nested = true, parentContainer = nestedCommentsContainer)
+            }
+        }
+    }
 
 
 

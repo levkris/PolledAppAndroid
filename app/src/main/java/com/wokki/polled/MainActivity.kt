@@ -1,6 +1,8 @@
 package com.wokki.polled
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -16,7 +18,13 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.wokki.polled.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -25,6 +33,10 @@ class MainActivity : AppCompatActivity() {
 
     private val targetLanguage = Locale.getDefault().language
 
+    private lateinit var sharedPreferences: SharedPreferences
+    private var accessToken: String? = null
+
+    private val context = this
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +49,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        sharedPreferences = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        accessToken = sharedPreferences.getString("access_token", null)
 
         val refreshAccessToken = RefreshAccessToken(this)
 
@@ -62,20 +76,18 @@ class MainActivity : AppCompatActivity() {
 
         // Check if there's an extra for the page to navigate to
         val page = intent?.getStringExtra("page")
-
+        val post = intent?.getStringExtra("post")
         if (page != null) {
             navigateToPage(page)
+        } else if (post != null) {
+            Log.d("MainActivity", "Received post ID: $post")
+            showFullPost(post, context)
         }
 
     }
 
     private fun navigateToPage(page: String) {
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
-        Log.d("NavController", "NavController found: $navController")
-        navigateToPage(page)
-
-
-        Log.e("LoginRedirect", "Attempting to navigate to: $page")
 
         when (page) {
             "home" -> navController.navigate(R.id.navigation_home)
@@ -85,6 +97,58 @@ class MainActivity : AppCompatActivity() {
         }
 
 
+    }
+
+    private fun showFullPost(postId: String, context: Context) {
+        val url = "https://levgames.nl/polled/api/v1/timeline?limit=1&offset_id=$postId"
+
+        CoroutineScope(Dispatchers.IO).launch {
+            var response = ""
+
+            try {
+                val urlObj = URL(url)
+                val urlConnection = urlObj.openConnection() as HttpURLConnection
+                urlConnection.requestMethod = "GET"
+                urlConnection.setRequestProperty("Authorization", "Bearer $accessToken")
+                urlConnection.connect()
+
+                val responseCode = urlConnection.responseCode
+                response = if (responseCode == HttpURLConnection.HTTP_OK) {
+                    urlConnection.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    "Error: $responseCode"
+                }
+                urlConnection.disconnect()
+            } catch (e: Exception) {
+                response = "Error: ${e.message}"
+            }
+
+            // Switch to the main thread to start the activity
+            withContext(Dispatchers.Main) {
+                try {
+                    // Parse response to JSON
+                    val jsonResponse = JSONObject(response)
+
+                    // Extract the "timeline" array
+                    val timelineArray = jsonResponse.optJSONArray("timeline")
+
+                    // Check if the timeline array is not empty and get the first item
+                    if (timelineArray != null && timelineArray.length() > 0) {
+                        val firstPost = timelineArray.getJSONObject(0)
+
+                        // Now send over the first post data to FullPostActivity
+                        val intent = Intent(context, FullPostActivity::class.java)
+                        intent.putExtra("POST_DATA", firstPost.toString())  // Pass the first post as a string
+                        context.startActivity(intent)
+                    } else {
+                        // Handle the case where there's no data in the timeline array
+                        Log.e("Error", "No posts found in timeline.")
+                    }
+                } catch (e: Exception) {
+                    Log.e("Error", "Error parsing response: ${e.message}")
+                }
+            }
+        }
     }
 
     private fun isUserLoggedIn(): Boolean {
