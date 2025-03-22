@@ -176,7 +176,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 context.startActivity(intent)  // Start activity with context
             }
             // Construct the profile picture URL dynamically
-            val profilePictureUrl = "https://levgames.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
+            val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
 
             // Load the profile picture using Glide
             Glide.with(itemView.context)
@@ -489,7 +489,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         }
 
         private fun sharePost(postId: Int) {
-            val shareText = "Polled\nLook at this cool post I found on Polled, https://polled.levgames.nl/?post=$postId"
+            val shareText = "Polled\nLook at this cool post I found on Polled, https://polled.wokki20.nl/?post=$postId"
             val shareIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, shareText)
@@ -508,7 +508,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
             // Create the request
             val request = Request.Builder()
-                .url("https://levgames.nl/polled/api/v1/timeline")
+                .url("https://wokki20.nl/polled/api/v1/timeline")
                 .delete(formData)
                 .addHeader("Authorization", "Bearer $accessToken")
                 .build()
@@ -637,7 +637,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 .build()
 
             val request = Request.Builder()
-                .url("https://levgames.nl/polled/api/v1/vote")
+                .url("https://wokki20.nl/polled/api/v1/vote")
                 .post(formBody)
                 .addHeader("Authorization", "Bearer $accessToken")
                 .build()

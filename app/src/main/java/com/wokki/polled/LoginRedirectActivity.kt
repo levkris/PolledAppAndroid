@@ -69,7 +69,7 @@ class LoginRedirectActivity : AppCompatActivity() {
             .build()
 
         val request = Request.Builder()
-            .url("https://levgames.nl/polled/api/v1/authorization_code")
+            .url("https://wokki20.nl/polled/api/v1/authorization_code")
             .post(requestBody)
             .build()
 

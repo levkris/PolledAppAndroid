@@ -36,7 +36,7 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
         }
 
         val request = Request.Builder()
-            .url("https://levgames.nl/polled/api/v1/profile")
+            .url("https://wokki20.nl/polled/api/v1/profile")
             .header("Authorization", "Bearer $accessToken")
             .build()
 
@@ -69,7 +69,7 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
 
                                 // Construct the image URL
                                 val imageUrl =
-                                    "https://levgames.nl/polled/api/v1/users/$userUrl/$image"
+                                    "https://wokki20.nl/polled/api/v1/users/$userUrl/$image"
 
                                 // Create the profile info string
                                 val profileInfo = """

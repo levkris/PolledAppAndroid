@@ -126,7 +126,7 @@ class ProfileFragment : Fragment() {
 
     // Function to open a mailto link for ban appeal
     private fun openMailTo(username: String) {
-        val emailUri = Uri.parse("mailto:info@levgames.nl?subject=Ban Appeal for $username&body=I would like to appeal my ban.")
+        val emailUri = Uri.parse("mailto:info@wokki20.nl?subject=Ban Appeal for $username&body=I would like to appeal my ban.")
         val emailIntent = Intent(Intent.ACTION_VIEW, emailUri)
         ContextCompat.startActivity(requireContext(), emailIntent, null)
     }

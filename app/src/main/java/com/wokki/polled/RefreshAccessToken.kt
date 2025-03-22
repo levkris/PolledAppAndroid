@@ -16,7 +16,7 @@ class RefreshAccessToken(private val context: Context) {
 
     private val clientId = BuildConfig.CLIENT_ID
     private val clientSecret = BuildConfig.CLIENT_SECRET
-    private val apiUrl = "https://levgames.nl/polled/api/v1/authorization_code.php"
+    private val apiUrl = "https://wokki20.nl/polled/api/v1/authorization_code.php"
 
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 

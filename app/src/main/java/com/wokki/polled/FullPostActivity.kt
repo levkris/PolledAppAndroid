@@ -89,7 +89,7 @@ class FullPostActivity : AppCompatActivity() {
 
 
         // Construct the profile picture URL dynamically
-        val profilePictureUrl = "https://levgames.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
+        val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
 
         // Load the profile picture using Glide
         Glide.with(context)
@@ -366,7 +366,7 @@ class FullPostActivity : AppCompatActivity() {
             commentTextView.text = commentMessage
 
             // Construct the profile picture URL dynamically
-            val profilePictureUrl = "https://levgames.nl/polled/api/v1/users/" + commentObject.optString("maker_url") + "/" + commentObject.optString("maker_image")
+            val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + commentObject.optString("maker_url") + "/" + commentObject.optString("maker_image")
 
             // Load the profile picture using Glide
             Glide.with(context)
@@ -411,7 +411,7 @@ class FullPostActivity : AppCompatActivity() {
             .build()
 
         val request = Request.Builder()
-            .url("https://levgames.nl/polled/api/v1/vote")
+            .url("https://wokki20.nl/polled/api/v1/vote")
             .post(formBody)
             .addHeader("Authorization", "Bearer $accessToken")
             .build()

@@ -20,13 +20,13 @@ class LoginActivity : AppCompatActivity() {
 
         binding.loginButton.setOnClickListener {
             // Redirect to the login website
-            val loginIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://polled.levgames.nl/loginApp"))
+            val loginIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://polled.wokki20.nl/loginApp"))
             startActivity(loginIntent)
         }
 
         binding.createAccountButton.setOnClickListener {
             // Redirect to the create account page (new activity)
-            val loginIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://polled.levgames.nl/create"))
+            val loginIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://polled.wokki20.nl/create"))
             startActivity(loginIntent)
         }
     }

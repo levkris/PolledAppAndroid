@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showFullPost(postId: String, context: Context) {
-        val url = "https://levgames.nl/polled/api/v1/timeline?limit=1&offset_id=$postId"
+        val url = "https://wokki20.nl/polled/api/v1/timeline?limit=1&offset_id=$postId"
 
         CoroutineScope(Dispatchers.IO).launch {
             var response = ""

@@ -242,7 +242,7 @@ class HomeFragment : Fragment() {
     inner class FetchTimelineTask(private val accessToken: String) : AsyncTask<Void, Void, String>() {
 
         override fun doInBackground(vararg params: Void?): String {
-            val url = URL("https://levgames.nl/polled/api/v1/timeline?limit=10&offset=$offset")
+            val url = URL("https://wokki20.nl/polled/api/v1/timeline?limit=10&offset=$offset")
             val urlConnection: HttpURLConnection = url.openConnection() as HttpURLConnection
 
             try {
@@ -389,7 +389,7 @@ class HomeFragment : Fragment() {
 
         private fun openMailTo(username: String) {
             // Create an intent for opening the mailto link (email) with the subject and body
-            val emailUri = Uri.parse("mailto:info@levgames.nl?subject=Ban Appeal for $username&body=I would like to appeal my ban.")
+            val emailUri = Uri.parse("mailto:info@wokki20.nl?subject=Ban Appeal for $username&body=I would like to appeal my ban.")
             val emailIntent = Intent(Intent.ACTION_VIEW, emailUri)
 
             // Directly start the activity without checking for a mail app
