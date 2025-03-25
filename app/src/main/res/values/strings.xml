@@ -26,9 +26,13 @@
     <string name="hours">hours</string>
     <string name="day">day</string>
     <string name="days">days</string>
+    <string name="followers_count">%1$d Followers</string>
+    <string name="following_count">%1$d Following</string>
+    <string name="posts_count">%1$d Posts</string>
 
-
-
+    <string name="about">About</string>
+    <string name="activity">Activity</string>
+    <string name="settings">Settings</string>
 
 
     <string name="login_message">You have to login to use Polled</string>

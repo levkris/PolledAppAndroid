@@ -217,6 +217,7 @@ class HomeFragment : Fragment() {
         }
     }
 
+
     private fun fetchDataFromApi() {
         // Check internet connection
         if (!isInternetAvailable(requireContext())) {
@@ -298,6 +299,7 @@ class HomeFragment : Fragment() {
                     }
                 }
 
+
                 // Existing logic for handling non-banned users
                 if (jsonResponse.has("error")) {
                     val errorMessage = jsonResponse.getString("error")
@@ -311,10 +313,19 @@ class HomeFragment : Fragment() {
                 } else {
                     // Try to parse the response as JSON
                     val status = jsonResponse.optString("status")
+                    val message = jsonResponse.optString("message")
+
                     if (status != "success") {
                         // Handle the error if status is not success
                         throw Exception("Error: Unexpected status - $status")
                     } else {
+
+                        if (message == "No posts available") {
+                            // Clear cached data
+                            homeViewModel.timelineData.value ?: emptyList()
+                            // Fetch new data from the API
+                            fetchDataFromApi()
+                        }
                         // Success, process the timeline
                         val timeline = jsonResponse.optJSONArray("timeline")
                         if (timeline != null && timeline.length() > 0) {

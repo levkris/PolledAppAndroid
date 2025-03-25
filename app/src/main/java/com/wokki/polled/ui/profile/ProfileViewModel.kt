@@ -9,7 +9,6 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
@@ -21,8 +20,26 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
     private val _imageUrl = MutableLiveData<String>()
     val imageUrl: LiveData<String> = _imageUrl
 
+    private val _bannerUrl = MutableLiveData<String>()
+    val bannerUrl: LiveData<String> = _bannerUrl
+
+    private val _verified = MutableLiveData<Boolean>()
+    val verified: LiveData<Boolean> = _verified
 
 
+    private val _followersCount = MutableLiveData<Int>()
+    val followersCount: LiveData<Int> = _followersCount
+
+    private val _followingCount = MutableLiveData<Int>()
+    val followingCount: LiveData<Int> = _followingCount
+
+    private val _postsCount = MutableLiveData<Int>()
+    val postsCount: LiveData<Int> = _postsCount
+
+    private val _bio = MutableLiveData<String>()
+    val bio: LiveData<String> = _bio
+
+    // Fetch profile data from the API
     fun fetchProfileData() {
         val client = OkHttpClient()
 
@@ -58,72 +75,43 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
                         if (responseData != null) {
                             val json = JSONObject(responseData)
 
-
-                            if (json.getBoolean("success")) {
+                            val status = json.getString("status")
+                            if (status == "success") {
                                 val profile = json.getJSONObject("profile")
 
                                 // Get the profile information
                                 val username = profile.getString("username")
                                 val image = profile.getString("image")
                                 val userUrl = profile.getString("user_url")
+                                val banner = profile.getString("banner")
+                                val verified = profile.getInt("verified") == 1
+                                val followersCount = profile.getInt("followers_count")
+                                val followingCount = profile.getInt("following_count")
+                                val postsCount = profile.getInt("posts_count")
+                                val bio = profile.getString("bio")
 
                                 // Construct the image URL
-                                val imageUrl =
-                                    "https://wokki20.nl/polled/api/v1/users/$userUrl/$image"
+                                val imageUrl = "https://wokki20.nl/polled/api/v1/users/$userUrl/$image"
 
-                                // Create the profile info string
-                                val profileInfo = """
-                                Hello, $username! This is your profile page.
-                            """.trimIndent()
 
+                                val bannerUrl = "https://wokki20.nl/polled/api/v1/users/$userUrl/$banner"
+
+
+                                _bannerUrl.postValue(bannerUrl)
                                 // Update LiveData with profile info and image URL
-                                _profileData.postValue(profileInfo)
+                                _profileData.postValue(username)
                                 _imageUrl.postValue(imageUrl)
+                                _verified.postValue(verified)
+                                _followersCount.postValue(followersCount)
+                                _followingCount.postValue(followingCount)
+                                _postsCount.postValue(postsCount)
+                                _bio.postValue(bio)
+
+
                             } else {
-                                try {
-                                    // Assuming this part is fetching and parsing the JSON response
-                                    if (json.has("message")) {
-                                        val errorMessage = json.getString("message")
-                                        println(errorMessage)
-
-                                        // Check if the error message is "User is banned"
-                                        if (errorMessage == "User is banned") {
-                                            // Extract username and reason from the JSON response
-                                            val username = json.getString("username")
-                                            val reason = json.getString("reason")
-
-                                            // Show the banned page in the fragment
-                                            // Make sure to call this in the fragment context
-                                            (context as? ProfileFragment)?.showBannedPage(
-                                                username,
-                                                reason
-                                            )
-                                        } else {
-                                            _profileData.postValue("Error: $errorMessage")
-                                        }
-                                    } else {
-                                        _profileData.postValue("Empty response body")
-                                    }
-                                } catch (e: JSONException) {
-                                    // Handle JSON parsing errors
-                                    _profileData.postValue("Please clear the cache of the app and try again. To clear the cache: long press the app icon, click app info > Storage & cache > Clear storage.")
-                                } catch (e: Exception) {
-                                    // Handle any other unexpected errors and avoid crashing the app
-                                    // If the exception is related to banning, handle it in the same way
-                                    if (e.message?.contains("User is banned") == true) {
-                                        val username = "unknown"
-                                        val reason = "unknown reason"
-                                        (context as? ProfileFragment)?.showBannedPage(
-                                            username,
-                                            reason
-                                        )
-                                        _profileData.postValue("Error: User is banned.")
-                                    } else {
-                                        _profileData.postValue("Error: ${e.message}")
-                                    }
-                                }
-
-
+                                // Handle case where status is not "success"
+                                val errorMessage = json.optString("message", "Unknown error")
+                                _profileData.postValue("Error: $errorMessage")
                             }
                         }
                     }
@@ -134,9 +122,4 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
             }
         })
     }
-
-
-
-
-
 }

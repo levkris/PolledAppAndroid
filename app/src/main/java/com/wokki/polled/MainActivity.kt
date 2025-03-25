@@ -168,6 +168,19 @@ class MainActivity : AppCompatActivity() {
             .replace("`", "\uE004")  // Escape '`' (used for code blocks)
             .replace("\n", "\uE000") // Escape newline character
 
+        // Preserve mentions (@username)
+        val mentionRegex = "@[^\\s\\\\/:*?\"<>|]+".toRegex()
+        val mentions = mutableMapOf<String, String>()
+        var tempMessage = escapedMessage
+        var index = 0
+
+        tempMessage = mentionRegex.replace(tempMessage) { matchResult ->
+            val placeholder = "\uE100$index\uE101"
+            mentions[placeholder] = matchResult.value
+            index++
+            placeholder
+        }
+
         val options = TranslatorOptions.Builder()
             .setSourceLanguage(TranslateLanguage.ENGLISH)  // Assuming message is in English
             .setTargetLanguage(targetLanguage)  // Set this dynamically based on the user's language
@@ -175,34 +188,34 @@ class MainActivity : AppCompatActivity() {
 
         val translator = Translation.getClient(options)
 
-        // Download the model if it's not already downloaded
         translator.downloadModelIfNeeded()
             .addOnSuccessListener {
-                // If the model is downloaded successfully, translate the message
-                translator.translate(escapedMessage)
+                translator.translate(tempMessage)
                     .addOnSuccessListener { translatedText ->
-                        // Restore the markdown placeholders back to their original characters
-                        val formattedText = translatedText
+                        // Restore markdown placeholders
+                        var formattedText = translatedText
                             .replace("\uE001", "*")
                             .replace("\uE002", "#")
                             .replace("\uE003", "_")
                             .replace("\uE004", "`")
                             .replace("\uE000", "\n")
 
-                        // Return the translated text via the callback, update UI on main thread
+                        // Restore mentions
+                        mentions.forEach { (placeholder, original) ->
+                            formattedText = formattedText.replace(placeholder, original)
+                        }
+
                         Handler(Looper.getMainLooper()).post {
                             onTranslated(formattedText)
                         }
                     }
-                    .addOnFailureListener { exception ->
-                        // If translation fails, return the original message
+                    .addOnFailureListener {
                         Handler(Looper.getMainLooper()).post {
                             onTranslated(message)
                         }
                     }
             }
-            .addOnFailureListener { exception ->
-                // If the model download fails, return the original message
+            .addOnFailureListener {
                 Handler(Looper.getMainLooper()).post {
                     onTranslated(message)
                 }

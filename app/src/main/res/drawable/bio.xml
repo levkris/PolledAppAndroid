@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="?android:attr/navigationBarColor" /> <!-- Background color -->
+    <corners android:radius="20dp" /> <!-- Larger radius for squircle effect -->
+    <stroke android:width="1dp" android:color="@color/main" /> <!-- 1px border with main color -->
+</shape>

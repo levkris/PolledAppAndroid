@@ -1,141 +1,139 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="35dp">
+    android:fillViewport="true">
 
-    <!-- Container for Profile Picture, Name, Message, and Date -->
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="0dp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:background="@drawable/post_item"
-        android:orientation="vertical"
-        android:padding="20dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:paddingTop="35dp">
 
-        <!-- Profile Picture, Name, and Date -->
+        <!-- Container for Profile Picture, Name, Message, and Date -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:id="@+id/linearLayout"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:gravity="start"
-            android:orientation="horizontal">
+            android:layout_margin="10dp"
+            android:background="@drawable/post_item"
+            android:orientation="vertical"
+            android:padding="20dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Profile Picture -->
-            <ImageView
-                android:id="@+id/profilePic"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="10dp"
-                android:contentDescription="Profile picture" />
-
-            <!-- Name and Verification -->
+            <!-- Profile Picture, Name, and Date -->
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="start|center_vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:gravity="start"
                 android:orientation="horizontal">
 
-                <!-- Name -->
+                <!-- Profile Picture -->
+                <ImageView
+                    android:id="@+id/profilePic"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:contentDescription="Profile picture" />
+
+                <!-- Name and Verification -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|center_vertical"
+                    android:orientation="horizontal">
+
+                    <!-- Name -->
+                    <TextView
+                        android:id="@+id/userName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:text="User Name"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <!-- Verification Checkmark -->
+                    <ImageView
+                        android:id="@+id/verifiedIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="5dp"
+                        android:src="@drawable/verified_24"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <!-- Date -->
                 <TextView
-                    android:id="@+id/userName"
+                    android:id="@+id/dateText"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:gravity="center_vertical"
-                    android:text="User Name"
+                    android:layout_marginStart="10dp"
+                    android:gravity="center_vertical|end"
+                    android:text="March 16, 2025"
+                    android:textColor="@android:color/darker_gray"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Message Text -->
+            <TextView
+                android:id="@+id/messageText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="4dp"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:id="@+id/buttonContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+
+            <!-- Poll Layout (Initially Hidden) -->
+            <LinearLayout
+                android:id="@+id/pollLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:orientation="vertical"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:visibility="gone">
+
+                <!-- Poll Question -->
+                <TextView
+                    android:id="@+id/pollQuestionText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="8dp"
+                    android:text="Poll Question"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <!-- Verification Checkmark -->
-                <ImageView
-                    android:id="@+id/verifiedIcon"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginLeft="5dp"
-                    android:src="@drawable/verified_24"
-                    android:visibility="gone" />
+                <!-- Poll Options Container -->
+                <LinearLayout
+                    android:id="@+id/pollOptionsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <!-- Poll options will be added dynamically here -->
+                </LinearLayout>
             </LinearLayout>
-
-            <!-- Date -->
-            <TextView
-                android:id="@+id/dateText"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginStart="10dp"
-                android:gravity="center_vertical|end"
-                android:text="March 16, 2025"
-                android:textColor="@android:color/darker_gray"
-                android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- Message Text -->
-        <TextView
-            android:id="@+id/messageText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:lineSpacingExtra="4dp"
-            android:textSize="16sp"
-
-
-            />
-
         <LinearLayout
-            android:id="@+id/buttonContainer"
-            android:layout_width="wrap_content"
+            android:id="@+id/commentsContainer"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"></LinearLayout>
-
-
-        <!-- Poll Layout (Initially Hidden) -->
-        <LinearLayout
-            android:id="@+id/pollLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
             android:orientation="vertical"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:visibility="gone">
-
-            <!-- Poll Question -->
-            <TextView
-                android:id="@+id/pollQuestionText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingBottom="8dp"
-                android:text="Poll Question"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <!-- Poll Options Container -->
-            <LinearLayout
-                android:id="@+id/pollOptionsContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <!-- Poll options will be added dynamically here -->
-            </LinearLayout>
-        </LinearLayout>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/commentsContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        android:scrollbars="vertical"
-        android:paddingLeft="12dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+            android:paddingLeft="12dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

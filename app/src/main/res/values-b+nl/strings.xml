@@ -25,6 +25,13 @@
     <string name="hours">uren</string>
     <string name="day">dag</string>
     <string name="days">dagen</string>
+    <string name="followers_count">%1$d Volgers</string>
+    <string name="following_count">%1$d Volgend</string>
+    <string name="posts_count">%1$d Berichten</string>
+
+    <string name="about">Over</string>
+    <string name="activity">Activiteit</string>
+    <string name="settings">Instellingen</string>
 
     <string name="read_more">Lees meer</string>
     <string name="login_message">Je moet inloggen om Polled te gebruiken</string>

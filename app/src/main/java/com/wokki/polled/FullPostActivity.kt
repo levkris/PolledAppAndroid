@@ -9,8 +9,10 @@ import android.text.Html
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.StyleSpan
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -344,62 +346,70 @@ class FullPostActivity : AppCompatActivity() {
 
 
     private fun displayComments(comments: JSONArray, nested: Boolean = false, parentContainer: LinearLayout? = null) {
+        val commentsContainer = parentContainer ?: findViewById<LinearLayout>(R.id.commentsContainer)
 
-        var commentsContainer = parentContainer ?: findViewById<LinearLayout>(R.id.commentsContainer)
-
-        // Loop through the comments and add the item_comment layout for each
         for (i in 0 until comments.length()) {
-            val commentObject = comments.getJSONObject(i)  // Get the comment object at position i
-            val commentMessage = commentObject.getString("message")  // Get the message field from the object
+            val commentObject = comments.getJSONObject(i)
+            val commentMessage = commentObject.getString("message")
+
+            Log.d("CommentsDebug", "Displaying comment: $commentMessage")
 
             // Inflate the item_comment layout
             val commentView = LayoutInflater.from(this).inflate(R.layout.item_comment, commentsContainer, false)
 
-            // Find the TextView and other elements inside the inflated layout
+            // Find elements inside the inflated layout
             val commentTextView = commentView.findViewById<TextView>(R.id.commentMessageText)
             val commentProfilePic = commentView.findViewById<ImageView>(R.id.commentProfilePic)
             val commentUserName = commentView.findViewById<TextView>(R.id.commentUserName)
             val commentDateText = commentView.findViewById<TextView>(R.id.commentDateText)
             val commentVerifiedIcon = commentView.findViewById<ImageView>(R.id.commentVerifiedIcon)
+            val nestedCommentsContainer = commentView.findViewById<LinearLayout>(R.id.nestedCommentsContainer)
 
             // Set the comment message text
             commentTextView.text = commentMessage
 
-            // Construct the profile picture URL dynamically
-            val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + commentObject.optString("maker_url") + "/" + commentObject.optString("maker_image")
-
-            // Load the profile picture using Glide
-            Glide.with(context)
-                .load(profilePictureUrl)
-                .circleCrop()
-                .into(commentProfilePic)
+            // Load profile picture using Glide
+            val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/${commentObject.optString("maker_url")}/${commentObject.optString("maker_image")}"
+            Glide.with(context).load(profilePictureUrl).circleCrop().into(commentProfilePic)
 
             // Set username and other details
-            val name = commentObject.optString("maker")
-            commentUserName.text = name
-
+            commentUserName.text = commentObject.optString("maker")
             val edited = commentObject.optInt("edited") == 1
-            val date = commentObject.optString("created_at")
-            commentDateText.text = formatDate(date, edited)
+            commentDateText.text = formatDate(commentObject.optString("created_at"), edited)
 
-            // Check for verification status
-            val isVerified = commentObject.optInt("verified") == 1
-            commentVerifiedIcon.visibility = if (isVerified) View.VISIBLE else View.GONE
+            // Show verification badge if verified
+            commentVerifiedIcon.visibility = if (commentObject.optInt("verified") == 1) View.VISIBLE else View.GONE
 
-            // Add the inflated layout to the comments container
+            // **Ensure nestedCommentsContainer is visible**
+            nestedCommentsContainer.visibility = View.VISIBLE
+
+            // **Indent nested comments for better UI**
+            if (nested) {
+                val params = commentView.layoutParams as ViewGroup.MarginLayoutParams
+                params.marginStart = 50  // Indent nested comments
+                commentView.layoutParams = params
+            }
+
+            // **Add commentView to parent container**
             commentsContainer.addView(commentView)
 
-            // Find the nested comments container within the current comment view
-            val nestedCommentsContainer = commentView.findViewById<LinearLayout>(R.id.nestedCommentsContainer)
-
-            // If nested comments exist, recursively display them
+            // Process nested comments
             val nestedComments = commentObject.optJSONArray("comments")
             if (nestedComments != null && nestedComments.length() > 0) {
-                // Pass the nestedCommentsContainer as parent for recursive call
+                Log.d("CommentsDebug", "Found nested comments for: $commentMessage")
+
+                // **Force nested container to be visible**
+                nestedCommentsContainer.visibility = View.VISIBLE
+
+                // **Pass nestedCommentsContainer as the new parentContainer**
                 displayComments(nestedComments, nested = true, parentContainer = nestedCommentsContainer)
+            } else {
+                Log.d("CommentsDebug", "No nested comments for: $commentMessage")
             }
         }
     }
+
+
 
 
 
