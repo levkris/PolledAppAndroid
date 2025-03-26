@@ -67,5 +67,6 @@ dependencies {
     implementation 'com.google.mlkit:translate:17.0.1'
     implementation 'io.noties.markwon:core:4.6.2' // Markwon for markdown parsing
     implementation 'com.google.code.gson:gson:2.8.9'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0" // or latest version
 
 }

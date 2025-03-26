@@ -37,4 +37,18 @@
 
     <string name="login_message">You have to login to use Polled</string>
     <string name="read_less">Read less</string>
+    <string name="showFullPost">Show full post</string>
+    <string name="message_hint_1">What\'s on your mind?</string>
+    <string name="post">Post</string>
+    <string name="poll_title_hint_1">How are you?</string>
+    <string name="add_poll_option">Add option</string>
+    <string name="multiple_choice">Allow multiple choice</string>
+    <string name="post_message">New post</string>
+    <string name="message_text">Message:</string>
+    <string name="pollTitleText">Poll title (optional): </string>
+
+    <string name="poll_option_hint">Option %1$d</string>
+    <string name="message_error">Message is required</string>
+    <string name="option_error">Poll option cannot be empty</string>
+
 </resources>

@@ -14,6 +14,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -50,6 +51,7 @@ class FullPostActivity : AppCompatActivity() {
     private lateinit var pollQuestionText: TextView
     private lateinit var pollOptionsContainer: LinearLayout
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var backButton: ImageButton
     private var accessToken: String? = null
     private val mainActivity = this@FullPostActivity // Assuming FullPostActivity is started from MainActivity
 
@@ -68,6 +70,7 @@ class FullPostActivity : AppCompatActivity() {
         buttonContainer = findViewById(R.id.buttonContainer)
         pollQuestionText = findViewById(R.id.pollQuestionText)
         pollOptionsContainer = findViewById(R.id.pollOptionsContainer)
+        backButton = findViewById(R.id.backButton)
         val markwon = Markwon.create(this)
 
         supportActionBar?.hide()
@@ -89,6 +92,9 @@ class FullPostActivity : AppCompatActivity() {
 
         var translated = false
 
+        backButton.setOnClickListener {
+            onBackPressed()
+        }
 
         // Construct the profile picture URL dynamically
         val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")

@@ -36,4 +36,21 @@
     <string name="read_more">Lees meer</string>
     <string name="login_message">Je moet inloggen om Polled te gebruiken</string>
     <string name="read_less">Lees minder</string>
+    <string name="showFullPost">Zie hele bericht</string>
+
+
+    <string name="message_hint_1">Waar denk je aan?</string>
+    <string name="post">Plaats</string>
+    <string name="poll_title_hint_1">Hoe gaat het?</string>
+    <string name="add_poll_option">Voeg optie toe</string>
+    <string name="multiple_choice">Sta meerdere antwoorden toe</string>
+    <string name="post_message">Nieuw bericht</string>
+    <string name="message_text">Bericht:</string>
+    <string name="pollTitleText">Poll titel (optioneel): </string>
+
+
+    <string name="poll_option_hint">Optie %1$d</string>
+    <string name="message_error">Bericht is verplicht</string>
+    <string name="option_error">Poll optie mag niet leeg zijn</string>
+
 </resources>

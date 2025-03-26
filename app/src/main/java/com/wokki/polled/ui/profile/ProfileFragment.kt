@@ -2,6 +2,7 @@ package com.wokki.polled.ui.profile
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
@@ -9,6 +10,7 @@ import android.text.Html
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.StyleSpan
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,9 +23,17 @@ import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.google.android.material.tabs.TabLayout
+import com.wokki.polled.FullPostActivity
 import com.wokki.polled.LoginActivity
 import com.wokki.polled.R
 import com.wokki.polled.databinding.FragmentProfileBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 class ProfileFragment : Fragment() {
 
@@ -32,7 +42,8 @@ class ProfileFragment : Fragment() {
     private lateinit var bannedReasonTextView: TextView
     private lateinit var bannedUsernameTextView: TextView
     private lateinit var appealBanButton: Button
-
+    private lateinit var sharedPreferences: SharedPreferences
+    private var accessToken: String? = null
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
 
@@ -118,6 +129,13 @@ class ProfileFragment : Fragment() {
             }
         }
 
+        var postsList: List<Post>? = null
+
+        profileViewModel.posts.observe(viewLifecycleOwner) { posts ->
+            postsList = posts
+        }
+
+
 
 
         val tabLayout = view.findViewById<TabLayout>(R.id.profile_tabs)
@@ -130,7 +148,7 @@ class ProfileFragment : Fragment() {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
                     0 -> showAboutSection()
-                    1 -> showActivitySection()
+                    1 -> showActivitySection(postsList)
                     2 -> showSettingsSection()
                 }
             }
@@ -166,7 +184,7 @@ class ProfileFragment : Fragment() {
 
     }
 
-    fun showActivitySection() {
+    fun showActivitySection(posts: List<Post>?) {
         // Hide logout button and bio
         binding.logoutButton.visibility = View.GONE
         binding.bio.visibility = View.GONE
@@ -175,10 +193,11 @@ class ProfileFragment : Fragment() {
         binding.posts.visibility = View.VISIBLE
 
         // Get reference to GridLayout where posts are shown
-        val gridLayout = binding.postsGrid // Assuming 'posts' is your GridLayout
+        val gridLayout = binding.postsGrid // Assuming 'postsGrid' is your GridLayout
+        gridLayout.removeAllViews()
 
-        for (i in 1..10) {  // Example: Add 10 posts
-
+        // Check if posts is not null or empty
+        posts?.forEach { post ->
             // Inflate the profile_post_item.xml and add it to the GridLayout
             val postView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.profile_post_item, gridLayout, false)
@@ -186,23 +205,83 @@ class ProfileFragment : Fragment() {
             // Add the post view to the GridLayout
             gridLayout.addView(postView)
 
-            // Get references to the "Show More" button and full post content
+            // Get references to UI elements inside the post layout
+            val postMessage = postView.findViewById<TextView>(R.id.post_text)
             val showMoreButton = postView.findViewById<TextView>(R.id.show_more_button)
-            val fullPostText = postView.findViewById<TextView>(R.id.full_post_text)
 
-            // Set click listener to toggle the visibility of full post content
-            showMoreButton.setOnClickListener {
-                if (fullPostText.visibility == View.GONE) {
-                    fullPostText.visibility = View.VISIBLE
-                    showMoreButton.text = "Show less"
-                } else {
-                    fullPostText.visibility = View.GONE
-                    showMoreButton.text = "Show more"
+            val strippedPostMessageText = if (post.message.length > 100) {
+                post.message.take(100) + "..."
+            } else {
+                post.message
+            }
+            // Set post content
+            postMessage.text = strippedPostMessageText
+
+            sharedPreferences = this.requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+            accessToken = sharedPreferences.getString("access_token", null)
+
+            val postId = post.id
+
+            val listener = View.OnClickListener {
+                val url = "https://wokki20.nl/polled/api/v1/timeline?limit=1&offset_id=$postId"
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    var response = ""
+
+                    try {
+                        val urlObj = URL(url)
+                        val urlConnection = urlObj.openConnection() as HttpURLConnection
+                        urlConnection.requestMethod = "GET"
+                        urlConnection.setRequestProperty("Authorization", "Bearer $accessToken")
+                        urlConnection.connect()
+
+                        val responseCode = urlConnection.responseCode
+                        response = if (responseCode == HttpURLConnection.HTTP_OK) {
+                            urlConnection.inputStream.bufferedReader().use { it.readText() }
+                        } else {
+                            "Error: $responseCode"
+                        }
+                        urlConnection.disconnect()
+                    } catch (e: Exception) {
+                        response = "Error: ${e.message}"
+                    }
+
+                    // Switch to the main thread to start the activity
+                    withContext(Dispatchers.Main) {
+                        try {
+                            // Parse response to JSON
+                            val jsonResponse = JSONObject(response)
+
+                            // Extract the "timeline" array
+                            val timelineArray = jsonResponse.optJSONArray("timeline")
+
+                            // Check if the timeline array is not empty and get the first item
+                            if (timelineArray != null && timelineArray.length() > 0) {
+                                val firstPost = timelineArray.getJSONObject(0)
+
+                                // Now send over the first post data to FullPostActivity
+                                val intent = Intent(context, FullPostActivity::class.java)
+                                intent.putExtra("POST_DATA", firstPost.toString())  // Pass the first post as a string
+                                context?.startActivity(intent)
+                            } else {
+                                // Handle the case where there's no data in the timeline array
+                                Log.e("Error", "No posts found in timeline.")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("Error", "Error parsing response: ${e.message}")
+                        }
+                    }
                 }
             }
+
+            // Set the same listener for both views
+            postView.setOnClickListener(listener)
+            showMoreButton.setOnClickListener(listener)
+            postMessage.setOnClickListener(listener)
+
+
         }
     }
-
 
     fun showSettingsSection() {
         binding.logoutButton.visibility = View.VISIBLE

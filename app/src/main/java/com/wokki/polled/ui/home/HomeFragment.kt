@@ -418,4 +418,6 @@ class HomeFragment : Fragment() {
         handler.removeCallbacks(internetCheckRunnable) // Stop checking when fragment is destroyed
     }
 
+
+
 }

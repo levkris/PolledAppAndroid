@@ -39,6 +39,11 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
     private val _bio = MutableLiveData<String>()
     val bio: LiveData<String> = _bio
 
+    private val _posts = MutableLiveData<List<Post>>()
+    val posts: LiveData<List<Post>> = _posts
+
+
+
     // Fetch profile data from the API
     fun fetchProfileData() {
         val client = OkHttpClient()
@@ -96,6 +101,19 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
 
                                 val bannerUrl = "https://wokki20.nl/polled/api/v1/users/$userUrl/$banner"
 
+                                val postsList = mutableListOf<Post>()
+
+                                val postsArray = profile.getJSONArray("posts")
+                                for (i in 0 until postsArray.length()) {
+                                    val postJson = postsArray.getJSONObject(i)
+                                    val post = Post(
+                                        id = postJson.getInt("id"),
+                                        message = postJson.getString("message"),
+                                        createdAt = postJson.getString("created_at")
+                                    )
+                                    postsList.add(post)
+                                }
+
 
                                 _bannerUrl.postValue(bannerUrl)
                                 // Update LiveData with profile info and image URL
@@ -106,7 +124,7 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
                                 _followingCount.postValue(followingCount)
                                 _postsCount.postValue(postsCount)
                                 _bio.postValue(bio)
-
+                                _posts.postValue(postsList)
 
                             } else {
                                 // Handle case where status is not "success"
@@ -123,3 +141,10 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
         })
     }
 }
+
+data class Post(
+    val id: Int,
+    val message: String,
+    val createdAt: String,
+)
+
