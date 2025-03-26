@@ -14,13 +14,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import io.noties.markwon.Markwon
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.FormBody
@@ -30,6 +36,8 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -54,7 +62,8 @@ class FullPostActivity : AppCompatActivity() {
     private lateinit var backButton: ImageButton
     private var accessToken: String? = null
     private val mainActivity = this@FullPostActivity // Assuming FullPostActivity is started from MainActivity
-
+    private lateinit var replyInput: EditText
+    private lateinit var replyButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +80,9 @@ class FullPostActivity : AppCompatActivity() {
         pollQuestionText = findViewById(R.id.pollQuestionText)
         pollOptionsContainer = findViewById(R.id.pollOptionsContainer)
         backButton = findViewById(R.id.backButton)
+        replyInput = findViewById(R.id.replyInput)
+        replyButton = findViewById(R.id.replyButton)
+
         val markwon = Markwon.create(this)
 
         supportActionBar?.hide()
@@ -80,6 +92,7 @@ class FullPostActivity : AppCompatActivity() {
 
         // Retrieve the JSON string from the intent
         val postString = intent.getStringExtra("POST_DATA")
+
 
         // Convert the string back to a JSONObject
         val timelineItem = if (postString != null) {
@@ -94,6 +107,15 @@ class FullPostActivity : AppCompatActivity() {
 
         backButton.setOnClickListener {
             onBackPressed()
+        }
+
+        val id = timelineItem.optInt("id")
+
+        replyButton.setOnClickListener {
+            if (replyInput.text.toString().isNotEmpty()) {
+                addComment(replyInput.text.toString(), id, id)
+                replyInput.text.clear()
+            }
         }
 
         // Construct the profile picture URL dynamically
@@ -202,7 +224,228 @@ class FullPostActivity : AppCompatActivity() {
 
     }
 
+    private fun addComment(message: String, id: Int, parentID: Int) {
+        // Use coroutines to perform the network request on a background thread
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = URL("https://wokki20.nl/polled/api/v1/timeline")
+                val urlConnection = url.openConnection() as HttpURLConnection
 
+                urlConnection.requestMethod = "POST"
+                urlConnection.setRequestProperty("Authorization", "Bearer $accessToken")
+                urlConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                urlConnection.doOutput = true
+
+                val formData = "message=$message&message_id=$id"
+                urlConnection.outputStream.use { outputStream ->
+                    outputStream.write(formData.toByteArray())
+                }
+
+                val responseCode = urlConnection.responseCode
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    throw Exception("HTTP error! Response code: $responseCode")
+                }
+
+                val response = urlConnection.inputStream.bufferedReader().readText()
+                val jsonResponse = JSONObject(response)
+
+                withContext(Dispatchers.Main) {
+                    updatePost(parentID)
+
+                }
+
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@FullPostActivity, "Request failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun updatePost(id: Int) {
+        val url = "https://wokki20.nl/polled/api/v1/timeline?limit=1&offset_id=$id"
+
+        CoroutineScope(Dispatchers.IO).launch {
+            var response = ""
+
+            try {
+                val urlObj = URL(url)
+                val urlConnection = urlObj.openConnection() as HttpURLConnection
+                urlConnection.requestMethod = "GET"
+                urlConnection.setRequestProperty("Authorization", "Bearer $accessToken")
+                urlConnection.connect()
+
+                val responseCode = urlConnection.responseCode
+                response = if (responseCode == HttpURLConnection.HTTP_OK) {
+                    urlConnection.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    "Error: $responseCode"
+                }
+                urlConnection.disconnect()
+            } catch (e: Exception) {
+                response = "Error: ${e.message}"
+            }
+
+            // Switch to the main thread to start the activity
+            withContext(Dispatchers.Main) {
+                try {
+                    // Parse response to JSON
+                    val jsonResponse = JSONObject(response)
+
+                    // Extract the "timeline" array
+                    val timelineArray = jsonResponse.optJSONArray("timeline")
+
+                    // Check if the timeline array is not empty and get the first item
+                    if (timelineArray != null && timelineArray.length() > 0) {
+                        val firstPost = timelineArray.getJSONObject(0)
+
+
+
+                        val markwon = Markwon.create(context)
+
+                        // Retrieve the JSON string from the intent
+                        val postString = firstPost.toString()
+
+
+                        // Convert the string back to a JSONObject
+                        val timelineItem = if (postString != null) {
+                            JSONObject(postString)
+                        } else {
+                            JSONObject()  // Default to an empty JSONObject if no data is found
+                        }
+
+                        val canChange = timelineItem.optBoolean("can_change")
+
+                        var translated = false
+
+                        backButton.setOnClickListener {
+                            onBackPressed()
+                        }
+
+                        val id = timelineItem.optInt("id")
+
+                        replyButton.setOnClickListener {
+                            addComment(replyInput.text.toString(), id, id)
+                        }
+
+                        // Construct the profile picture URL dynamically
+                        val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
+
+                        // Load the profile picture using Glide
+                        Glide.with(context)
+                            .load(profilePictureUrl)
+                            .circleCrop()
+                            .into(profilePic)
+
+
+                        // Username
+                        val name = timelineItem.optString("maker")
+                        userName.text = name
+
+                        // Message Text
+                        val message = timelineItem.optString("message")
+
+                        // Check if message is longer than 273 characters
+                        if (message.length > 273) {
+                            // Truncate the message and add "..."
+                            val truncatedMessage = message.substring(0, 300) + "..."
+
+                            markwon.setMarkdown(messageText, truncatedMessage)
+
+                            translateMessageInFullPost(truncatedMessage) { translatedText ->
+                                // Set the translated text to the messageText TextView
+                                markwon.setMarkdown(messageText, translatedText)
+                                translated = true
+                            }
+
+
+
+                            // Add a "Read more" button dynamically
+                            val readMoreButton = Button(context)
+                            readMoreButton.text = context.getString(R.string.read_more)
+
+                            readMoreButton.setBackgroundColor(Color.TRANSPARENT)
+                            readMoreButton.setTextColor(context.getColor(R.color.main))
+                            readMoreButton.textSize = 14f
+                            readMoreButton.setPadding(0, 0, 0, 0)
+                            readMoreButton.setTypeface(readMoreButton.typeface, Typeface.BOLD)
+
+                            // Set the listener for the "Read more" button
+                            readMoreButton.setOnClickListener {
+                                markwon.setMarkdown(messageText, message)
+
+                                translateMessageInFullPost(message) { translatedText ->
+                                    // Set the translated text to the messageText TextView
+                                    markwon.setMarkdown(messageText, translatedText)
+
+                                }
+
+
+
+                                // Optionally, you can hide the "Read more" button after it's clicked
+                                // Or make the button text change to "Read less"
+                                readMoreButton.text = context.getString(R.string.read_less)
+                                readMoreButton.setOnClickListener {
+                                    messageText.text = truncatedMessage
+                                    readMoreButton.text = context.getString(R.string.read_more)
+                                }
+                            }
+
+                            // Add the "Read more" button to the layout (ensure it has space in your layout)
+                            val buttonContainer = findViewById<LinearLayout>(R.id.buttonContainer)
+                            buttonContainer.removeAllViews()
+                            buttonContainer.addView(readMoreButton)
+                        } else {
+                            markwon.setMarkdown(messageText, message)
+
+
+                            translateMessageInFullPost(message) { translatedText ->
+                                // Set the translated text to the messageText TextView
+                                markwon.setMarkdown(messageText, translatedText)
+                                translated = true
+                            }
+
+
+                        }
+
+
+
+                        val edited = timelineItem.optInt("edited") == 1
+
+                        val date = timelineItem.optString("created_at")
+                        dateText.text = formatDate(date, edited)
+
+                        // Check for verification status
+                        val isVerified = timelineItem.optInt("verified") == 1
+                        verifiedIcon.visibility = if (isVerified) View.VISIBLE else View.GONE
+
+                        // Poll Handling
+                        val poll = timelineItem.optJSONObject("poll")
+                        if (poll != null) {
+                            displayPoll(poll, true)  // Call displayPoll to handle the poll section
+                        } else {
+                            pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
+                        }
+
+                        val commentsContainer = findViewById<LinearLayout>(R.id.commentsContainer)
+
+                        // remove previous comments
+                        commentsContainer.removeAllViews()
+
+                        val comments = timelineItem.optJSONArray("comments")
+                        if (comments != null) {
+                            displayComments(comments)
+                        }
+                    } else {
+                        // Handle the case where there's no data in the timeline array
+                        Log.e("Error", "No posts found in timeline.")
+                    }
+                } catch (e: Exception) {
+                    Log.e("Error", "Error parsing response: ${e.message}")
+                }
+            }
+        }
+    }
 
     fun formatDate(dateString: String, isEdited: Boolean = false): CharSequence {
         val now = System.currentTimeMillis()

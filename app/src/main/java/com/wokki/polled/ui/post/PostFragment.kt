@@ -69,6 +69,8 @@ class PostFragment : Fragment() {
     ): View {
 
 
+
+
         sharedPreferences = this.requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
         accessToken = sharedPreferences.getString("access_token", null)
 

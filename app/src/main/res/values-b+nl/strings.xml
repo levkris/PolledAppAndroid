@@ -52,5 +52,13 @@
     <string name="poll_option_hint">Optie %1$d</string>
     <string name="message_error">Bericht is verplicht</string>
     <string name="option_error">Poll optie mag niet leeg zijn</string>
+    <string name="reply_hint">Typ je reactie...</string>
+    <string name="create_account_message">Maak een account aan</string>
+    <string name="name">Gebruikersnaam</string>
+    <string name="email">Email</string>
+    <string name="password">Wachtwoord</string>
+    <string name="name_label">Gebruikersnaam:</string>
+    <string name="email_label">Email:</string>
+    <string name="password_label">Wachtwoord:</string>
 
 </resources>

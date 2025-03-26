@@ -25,9 +25,10 @@ class LoginActivity : AppCompatActivity() {
         }
 
         binding.createAccountButton.setOnClickListener {
-            // Redirect to the create account page (new activity)
-            val loginIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://polled.wokki20.nl/create"))
-            startActivity(loginIntent)
+            // Redirect to CreateAccountActivity
+            val intent = Intent(this, CreateAccountActivity::class.java)
+            startActivity(intent)
         }
+
     }
 }

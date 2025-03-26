@@ -8,10 +8,15 @@
 
     <Button
         android:id="@+id/loginButton"
-        android:layout_width="wrap_content"
-        android:layout_height="50dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:background="@drawable/button_background"
+        android:fontFamily="sans-serif"
         android:text="@string/login"
+        android:textAllCaps="false"
         android:textColor="@color/text_inverted"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.489"
@@ -21,10 +26,15 @@
 
     <Button
         android:id="@+id/createAccountButton"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_inverted"
+        android:layout_margin="20dp"
+        android:background="@drawable/button_background_secondary"
         android:text="@string/create_account"
+        android:textAllCaps="false"
+        android:textColor="?android:attr/textColor"
+        android:textSize="16sp"
+        app:backgroundTint="@null"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
@@ -34,8 +44,9 @@
 
     <TextView
         android:id="@+id/textView"
-        android:layout_width="380dp"
-        android:layout_height="33dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
         android:text="@string/login_message"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
         android:gravity="center_horizontal"

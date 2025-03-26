@@ -19,6 +19,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:windowSoftInputMode="adjustPan"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -44,6 +45,13 @@
             android:name=".LoginActivity"
             android:exported="true"
             android:label="Login Page">
+            <!-- Add any intent filters if needed -->
+        </activity>
+
+        <activity
+            android:name=".CreateAccountActivity"
+            android:exported="true"
+            android:label="Create Account Page">
             <!-- Add any intent filters if needed -->
         </activity>
 

@@ -14,6 +14,8 @@ navigationFragmentKtx = "2.8.4"
 navigationUiKtx = "2.8.4"
 swiperefreshlayout = "1.1.0"
 core = "1.15.0"
+uiGeometryAndroid = "1.7.8"
+playServicesSafetynet = "18.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -29,6 +31,8 @@ androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navi
 androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
 androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
 androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
+androidx-ui-geometry-android = { group = "androidx.compose.ui", name = "ui-geometry-android", version.ref = "uiGeometryAndroid" }
+play-services-safetynet = { group = "com.google.android.gms", name = "play-services-safetynet", version.ref = "playServicesSafetynet" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
