@@ -1,8 +1,12 @@
 <resources>
     <string name="app_name">Polled</string>
-    <string name="title_home">Home</string>
-    <string name="title_post">Post</string>
-    <string name="title_profile">Profile</string>
+    <string name="title_home">Tijdlijn</string>
+    <string name="title_post">Plaats</string>
+    <string name="title_notifications">Notificaties</string>
+    <string name="title_profile">Profiel</string>
+    <string name="title_messages">Berichten</string>
+
+
     <string name="create_account">Maak Account</string>
     <string name="login">Inloggen</string>
     <string name="logout">Uitloggen</string>
@@ -22,7 +26,7 @@
     <string name="sec">sec</string>
     <string name="min">min</string>
     <string name="hour">uur</string>
-    <string name="hours">uren</string>
+    <string name="hours">uur</string>
     <string name="day">dag</string>
     <string name="days">dagen</string>
     <string name="followers_count">%1$d Volgers</string>
@@ -60,5 +64,6 @@
     <string name="name_label">Gebruikersnaam:</string>
     <string name="email_label">Email:</string>
     <string name="password_label">Wachtwoord:</string>
+    <string name="no_bio">Je hebt nog geen bio</string>
 
 </resources>

@@ -27,6 +27,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
 
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -68,11 +69,12 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
         val appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.navigation_home, R.id.navigation_post, R.id.navigation_profile
+                R.id.navigation_home, R.id.navigation_notifications, R.id.navigation_post, R.id.navigation_messages, R.id.navigation_profile
             )
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+
 
         // Check if there's an extra for the page to navigate to
         val page = intent?.getStringExtra("page")
@@ -83,7 +85,6 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Received post ID: $post")
             showFullPost(post, context)
         }
-
     }
 
     private fun navigateToPage(page: String) {
@@ -93,6 +94,8 @@ class MainActivity : AppCompatActivity() {
             "home" -> navController.navigate(R.id.navigation_home)
             "post" -> navController.navigate(R.id.navigation_post)
             "profile" -> navController.navigate(R.id.navigation_profile)
+            "messages" -> navController.navigate(R.id.navigation_messages)
+            "notifications" -> navController.navigate(R.id.navigation_notifications)
             else -> Log.e("LoginRedirect", "Unknown page: $page")
         }
 

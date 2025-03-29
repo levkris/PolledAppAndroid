@@ -1,9 +1,11 @@
 package com.wokki.polled.ui.profile
 
 import android.content.Context
+import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.wokki.polled.R
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -88,18 +90,31 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
                                 val username = profile.getString("username")
                                 val image = profile.getString("image")
                                 val userUrl = profile.getString("user_url")
-                                val banner = profile.getString("banner")
+                                val banner = if (profile.isNull("banner")) {
+                                    "noBanner"
+                                } else {
+                                    profile.getString("banner")
+                                }
+
                                 val verified = profile.getInt("verified") == 1
                                 val followersCount = profile.getInt("followers_count")
                                 val followingCount = profile.getInt("following_count")
                                 val postsCount = profile.getInt("posts_count")
-                                val bio = profile.getString("bio")
+                                val bio = if (profile.isNull("bio")) {
+                                    getString(context, R.string.no_bio)
+                                } else {
+                                    profile.getString("bio")
+                                }
 
                                 // Construct the image URL
                                 val imageUrl = "https://wokki20.nl/polled/api/v1/users/$userUrl/$image"
 
+                                val bannerUrl = if (banner == "noBanner") {
+                                    "https://polled.wokki20.nl/assets/img/default-banner.png"
+                                } else {
+                                    "https://wokki20.nl/polled/api/v1/users/$userUrl/$banner"
+                                }
 
-                                val bannerUrl = "https://wokki20.nl/polled/api/v1/users/$userUrl/$banner"
 
                                 val postsList = mutableListOf<Post>()
 

@@ -89,6 +89,7 @@ class ProfileFragment : Fragment() {
         }
 
         profileViewModel.bio.observe(viewLifecycleOwner) { bio ->
+            // if bio is null, set it to something else
             binding.bio.text = bio
         }
 

@@ -2,7 +2,10 @@
     <string name="app_name">Polled</string>
     <string name="title_home">Home</string>
     <string name="title_post">Post</string>
+    <string name="title_notifications">Notifications</string>
     <string name="title_profile">Profile</string>
+    <string name="title_messages">Messages</string>
+
     <string name="create_account">Create Account</string>
     <string name="login">Login</string>
     <string name="logout">Logout</string>
@@ -58,4 +61,5 @@
     <string name="name_label">Username:</string>
     <string name="email_label">Email:</string>
     <string name="password_label">Password:</string>
+    <string name="no_bio">You don\'t have a bio yet</string>
 </resources>

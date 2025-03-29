@@ -134,8 +134,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp"
             android:layout_marginTop="20dp"
+            android:layout_marginRight="20dp"
             android:layout_marginBottom="60dp"
             android:background="@drawable/bio"
             android:padding="20dp"
@@ -144,7 +144,8 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/profile_tabs" />
+            app:layout_constraintTop_toBottomOf="@+id/profile_tabs"
+            app:layout_constraintVertical_bias="0.0" />
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/posts"
