@@ -1,5 +1,6 @@
 package com.wokki.polled
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -15,10 +16,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RadioButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -36,6 +39,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -533,6 +537,7 @@ class FullPostActivity : AppCompatActivity() {
 
         }
 
+        val multiple = poll.optInt("multiple_choice")
 
         // Clear existing options in the pollOptionsContainer
         pollOptionsContainer.removeAllViews()
@@ -544,25 +549,44 @@ class FullPostActivity : AppCompatActivity() {
             val optionText = option.optString("text")
             val percentage = option.optInt("percentage")
             val votes = option.optInt("votes")
+            var voted = option.optBoolean("voted")
 
             // Inflate the option item and find the TextViews inside it
             val optionView = LayoutInflater.from(context).inflate(R.layout.poll_option_item, pollOptionsContainer, false)
             val optionTextView = optionView.findViewById<TextView>(R.id.pollOptionText)  // For the option text
             val percentageTextView = optionView.findViewById<TextView>(R.id.pollPercentage)  // For the percentage
             val progressBarBackground = optionView.findViewById<LinearLayout>(R.id.progressBarBackground)
+            val optionButton = optionView.findViewById<RadioButton>(R.id.pollOptionButton)
+            val optionCheckbox = optionView.findViewById<CheckBox>(R.id.pollOptionCheckbox)
+            var correctOptionButton = "option"
+
+            optionView.tag = option.optInt("id")
 
             // Decode the HTML-encoded string back to normal
             val decodedText = Html.fromHtml(optionText).toString()
 
             optionTextView.text = decodedText
             if (translated) {
-
+                // Set the decoded text to the option text view
                 translateMessageInFullPost(decodedText) { translatedText ->
                     // Set the translated text to the messageText TextView
                     optionTextView.text = translatedText
                 }
+            }
+
+            if (multiple == 1) {
+                optionCheckbox.visibility = View.VISIBLE
+                optionButton.visibility = View.GONE
+                correctOptionButton = "checkbox"
+            }
 
 
+            if (voted) {
+                if (correctOptionButton == "checkbox") {
+                    optionCheckbox.isChecked = true
+                } else {
+                    optionButton.isChecked = true
+                }
             }
 
             // Set the percentage text to the percentage view
@@ -580,11 +604,40 @@ class FullPostActivity : AppCompatActivity() {
             }
 
             optionView.setOnClickListener {
-                voteOption(poll.optInt("id"), option.optInt("id"), poll.optInt("total_votes"), votes, poll.optInt("multiple"), poll.optBoolean("voted"))
+                voteOption(poll.optInt("id"), option.optInt("id"), poll.optInt("total_votes"), votes, poll.optInt("multiple"), voted, pollLayout)
+
+                if (correctOptionButton == "checkbox") {
+                    if (optionCheckbox.isChecked) {
+                        voted = false
+                        optionCheckbox.isChecked = false
+                    } else {
+                        voted = true
+                        optionCheckbox.isChecked = true
+                    }
+                } else {
+                    if (optionButton.isChecked) {
+                        voted = false
+                        optionButton.isChecked = false
+                    } else {
+                        voted = true
+                        removeOtherCheckedButtons(pollLayout)
+                        optionButton.isChecked = true
+                    }
+                }
             }
 
             // Add the option to the container
             pollOptionsContainer.addView(optionView)
+        }
+    }
+
+    fun removeOtherCheckedButtons(pollLayout: LinearLayout) {
+        val pollOptionsContainer = pollLayout.findViewById<LinearLayout>(R.id.pollOptionsContainer)
+
+        for (i in 0 until pollOptionsContainer.childCount) {
+            val optionView = pollOptionsContainer.getChildAt(i)
+            val optionButton = optionView.findViewById<RadioButton>(R.id.pollOptionButton)
+            optionButton.isChecked = false
         }
     }
 
@@ -686,7 +739,15 @@ class FullPostActivity : AppCompatActivity() {
     }
 
 
-    fun voteOption(pollId: Int, optionId: Int, totalVotes: Int, votes: Int, multiple: Int, voted: Boolean) {
+    fun voteOption(
+        pollId: Int,
+        optionId: Int,
+        totalVotes: Int,
+        votes: Int,
+        multiple: Int,
+        voted: Boolean,
+        pollLayout: LinearLayout
+    ) {
         val formBody = FormBody.Builder()
             .add("poll_id", pollId.toString())
             .add("option_id", optionId.toString())
@@ -704,15 +765,30 @@ class FullPostActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val data = response.body?.string()
-                    val jsonResponse = JSONObject(data)
+                    try {
+                        val jsonResponse = JSONObject(data)
 
-                    if (jsonResponse.getString("status") == "success") {
+                        val status = jsonResponse.optString("status", "")
+                        if (status == "success") {
+                            val newTotalVotes = jsonResponse.optInt("new_total_votes")
+                            val newOptionVotes = jsonResponse.optJSONArray("new_option_votes")
 
-
-
-
-                    } else {
-                        println("Error: ${jsonResponse.getString("error")}")
+                            // go through each option and update the votes
+                            if (newOptionVotes != null) {
+                                for (i in 0 until newOptionVotes.length()) {
+                                    val option = newOptionVotes.getJSONObject(i)
+                                    val optionId = option.optInt("id")
+                                    val newVotes = option.optInt("votes")
+                                    pollLayout.post {
+                                        updatePollUI(pollOptionsContainer, newTotalVotes, newVotes, optionId)
+                                    }
+                                }
+                            }
+                        } else {
+                            println("Error: Response status not successful.")
+                        }
+                    } catch (e: JSONException) {
+                        println("Error parsing JSON response: ${e.message}")
                     }
                 } else {
                     println("Network response was not ok, status: ${response.code}")
@@ -723,6 +799,37 @@ class FullPostActivity : AppCompatActivity() {
                 println("Request failed: ${e.message}")
             }
         })
+    }
+
+
+
+    fun updatePollUI(pollOptionsContainer: LinearLayout, newTotalVotes: Int, votes: Int, optionId: Int) {
+        // Loop through each poll option and update the percentage
+        for (i in 0 until pollOptionsContainer.childCount) {
+            val optionView = pollOptionsContainer.getChildAt(i)
+
+            val optionIdTag = optionView.tag as? Int ?: continue
+            val percentageTextView = optionView.findViewById<TextView>(R.id.pollPercentage)
+            val progressBarBackground = optionView.findViewById<LinearLayout>(R.id.progressBarBackground)
+
+            if (optionIdTag == optionId) {
+                val newPercentage = (votes.toFloat() / newTotalVotes.toFloat() * 100).toInt()
+                percentageTextView.text = "$newPercentage%"
+                val progressBarWidth = (newPercentage / 100f) * pollOptionsContainer.width
+
+                // Animate width change
+                val currentWidth = progressBarBackground.layoutParams.width
+                val animator = ValueAnimator.ofInt(currentWidth, progressBarWidth.toInt())
+                animator.addUpdateListener { valueAnimator ->
+                    val animatedValue = valueAnimator.animatedValue as Int
+                    val params = progressBarBackground.layoutParams
+                    params.width = animatedValue
+                    progressBarBackground.layoutParams = params
+                }
+                animator.duration = 500
+                animator.start()
+            }
+        }
     }
 
 

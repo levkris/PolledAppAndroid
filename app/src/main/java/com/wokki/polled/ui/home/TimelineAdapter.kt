@@ -1,5 +1,6 @@
 package com.wokki.polled.ui.home
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
@@ -682,8 +683,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 val optionCheckbox = optionView.findViewById<CheckBox>(R.id.pollOptionCheckbox)
                 var correctOptionButton = "option"
 
-                optionView.tag = option.optInt("id")  // Store option ID
-                optionTextView.tag = votes  // Store initial vote count
+                optionView.tag = option.optInt("id")
 
                 // Decode the HTML-encoded string back to normal
                 val decodedText = Html.fromHtml(optionText).toString()
@@ -797,15 +797,19 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                             val status = jsonResponse.optString("status", "")
                             if (status == "success") {
-                                var newTotalVotes = totalVotes
-                                if (multiple == 0) {
-                                    if (voted) {
-                                        newTotalVotes--
+                                val newTotalVotes = jsonResponse.optInt("new_total_votes")
+                                val newOptionVotes = jsonResponse.optJSONArray("new_option_votes")
+
+                                // go through each option and update the votes
+                                if (newOptionVotes != null) {
+                                    for (i in 0 until newOptionVotes.length()) {
+                                        val option = newOptionVotes.getJSONObject(i)
+                                        val optionId = option.optInt("id")
+                                        val newVotes = option.optInt("votes")
+                                        pollLayout.post {
+                                            updatePollUI(pollOptionsContainer, newTotalVotes, newVotes, optionId)
+                                        }
                                     }
-                                }
-                                val selectedOptionId = jsonResponse.optInt("selected_option_id", optionId)
-                                pollLayout.post {
-                                    updatePollUI(pollOptionsContainer, newTotalVotes, votes)
                                 }
                             } else {
                                 println("Error: Response status not successful.")
@@ -826,35 +830,31 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
 
 
-        fun updatePollUI(pollOptionsContainer: LinearLayout, newTotalVotes: Int, votes: Int) {
-            println("Updating UI...")
-
+        fun updatePollUI(pollOptionsContainer: LinearLayout, newTotalVotes: Int, votes: Int, optionId: Int) {
             // Loop through each poll option and update the percentage
             for (i in 0 until pollOptionsContainer.childCount) {
                 val optionView = pollOptionsContainer.getChildAt(i)
 
-                val optionId = optionView.tag as? Int ?: continue
-                val optionTextView = optionView.findViewById<TextView>(R.id.pollOptionText)
+                val optionIdTag = optionView.tag as? Int ?: continue
                 val percentageTextView = optionView.findViewById<TextView>(R.id.pollPercentage)
                 val progressBarBackground = optionView.findViewById<LinearLayout>(R.id.progressBarBackground)
 
-                // Get the current votes for this option (stored as the tag on optionTextView)
-                var votes = optionTextView.tag as? Int ?: 0
-
-                // Recalculate percentage
-
-                val newPercentage = if (newTotalVotes > 0) (votes.toFloat() / newTotalVotes * 100).toInt() else 0
-
-                // Set the percentage text
-                percentageTextView.text = "$newPercentage%"
-
-                // Update progress bar width dynamically
-                optionView.post {
+                if (optionIdTag == optionId) {
+                    val newPercentage = (votes.toFloat() / newTotalVotes.toFloat() * 100).toInt()
+                    percentageTextView.text = "$newPercentage%"
                     val progressBarWidth = (newPercentage / 100f) * pollOptionsContainer.width
-                    val params = progressBarBackground.layoutParams
-                    params.width = progressBarWidth.toInt()
-                    progressBarBackground.layoutParams = params
-                    println("Updated bar width: ${params.width}px for option $optionId")
+
+                    // Animate width change
+                    val currentWidth = progressBarBackground.layoutParams.width
+                    val animator = ValueAnimator.ofInt(currentWidth, progressBarWidth.toInt())
+                    animator.addUpdateListener { valueAnimator ->
+                        val animatedValue = valueAnimator.animatedValue as Int
+                        val params = progressBarBackground.layoutParams
+                        params.width = animatedValue
+                        progressBarBackground.layoutParams = params
+                    }
+                    animator.duration = 500
+                    animator.start()
                 }
             }
         }
