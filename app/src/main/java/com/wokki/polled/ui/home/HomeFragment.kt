@@ -21,11 +21,14 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.wokki.polled.R
+import com.wokki.polled.RefreshAccessToken
 import com.wokki.polled.databinding.FragmentHomeBinding
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -269,7 +272,15 @@ class HomeFragment : Fragment() {
         }
 
         private fun retryRequest() {
-            println("Retrying the request after token refresh...")
+            val refreshAccessToken = context?.let { RefreshAccessToken(it) }
+
+            lifecycleScope.launch {
+                if (refreshAccessToken != null) {
+                    refreshAccessToken.refreshTokenIfNeeded()
+
+                }
+            }
+
             execute()
         }
 
@@ -282,6 +293,8 @@ class HomeFragment : Fragment() {
 
             // Log the raw response
             println("Raw response: $result")
+
+
 
             try {
                 val jsonResponse = JSONObject(result)
@@ -309,6 +322,7 @@ class HomeFragment : Fragment() {
                     if (errorMessage == "Invalid or expired access token" && !retried) {
                         retried = true
                         retryRequest()
+
                     }
                 } else {
                     // Try to parse the response as JSON

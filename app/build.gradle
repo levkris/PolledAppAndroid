@@ -60,6 +60,7 @@ dependencies {
     implementation libs.androidx.core
     implementation libs.androidx.ui.geometry.android
     implementation libs.play.services.safetynet
+    implementation libs.protolite.well.known.types
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core

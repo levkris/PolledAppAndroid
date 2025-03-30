@@ -1,6 +1,7 @@
 package com.wokki.polled
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Typeface
@@ -21,6 +22,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import io.noties.markwon.Markwon
 import kotlinx.coroutines.CoroutineScope
@@ -64,12 +66,14 @@ class FullPostActivity : AppCompatActivity() {
     private val mainActivity = this@FullPostActivity // Assuming FullPostActivity is started from MainActivity
     private lateinit var replyInput: EditText
     private lateinit var replyButton: ImageButton
+    private var replyingComment = false
+    private var replyingToCommentId: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_full_post)
 
-        // Now initialize the views after setContentView
+        // Initialize the views
         profilePic = findViewById(R.id.profilePic)
         userName = findViewById(R.id.userName)
         messageText = findViewById(R.id.messageText)
@@ -93,6 +97,7 @@ class FullPostActivity : AppCompatActivity() {
         // Retrieve the JSON string from the intent
         val postString = intent.getStringExtra("POST_DATA")
 
+        val itemView = findViewById<LinearLayout>(R.id.linearLayout)
 
         // Convert the string back to a JSONObject
         val timelineItem = if (postString != null) {
@@ -101,108 +106,80 @@ class FullPostActivity : AppCompatActivity() {
             JSONObject()  // Default to an empty JSONObject if no data is found
         }
 
-        val canChange = timelineItem.optBoolean("can_change")
-
-        var translated = false
+        val id = timelineItem.optInt("id")
 
         backButton.setOnClickListener {
             onBackPressed()
         }
 
-        val id = timelineItem.optInt("id")
-
-        replyButton.setOnClickListener {
-            if (replyInput.text.toString().isNotEmpty()) {
-                addComment(replyInput.text.toString(), id, id)
-                replyInput.text.clear()
-            }
-        }
-
-        // Construct the profile picture URL dynamically
-        val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
-
-        // Load the profile picture using Glide
-        Glide.with(context)
-            .load(profilePictureUrl)
-            .circleCrop()
-            .into(profilePic)
-
-
         // Username
         val name = timelineItem.optString("maker")
         userName.text = name
 
+        // Construct the profile picture URL dynamically
+        val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
+        Glide.with(this)
+            .load(profilePictureUrl)
+            .circleCrop()
+            .into(profilePic)
+
         // Message Text
         val message = timelineItem.optString("message")
 
-        // Check if message is longer than 273 characters
+        val truncatedMessage = if (message.length > 273) {
+            message.substring(0, 273) + "..."
+        } else {
+            message
+        }
+
+        userName.setOnClickListener {
+            val intent = Intent(this, UserActivity::class.java)
+            intent.putExtra("userUrl", timelineItem.optString("maker_url"))
+            startActivity(intent)
+        }
+
+        // Initially show truncated message
+        markwon.setMarkdown(messageText, truncatedMessage)
+
+        var translated = false
+        translateMessageInFullPost(truncatedMessage) { translatedText ->
+            markwon.setMarkdown(messageText, translatedText)
+            translated = true
+        }
+
+        // Add a "Read more" button dynamically if the message was truncated
         if (message.length > 273) {
-            // Truncate the message and add "..."
-            val truncatedMessage = message.substring(0, 300) + "..."
-
-            markwon.setMarkdown(messageText, truncatedMessage)
-
-            translateMessageInFullPost(truncatedMessage) { translatedText ->
-                // Set the translated text to the messageText TextView
-                markwon.setMarkdown(messageText, translatedText)
-                translated = true
-            }
-
-
-
-            // Add a "Read more" button dynamically
-            val readMoreButton = Button(context)
-            readMoreButton.text = context.getString(R.string.read_more)
-
+            val readMoreButton = Button(this)
+            readMoreButton.text = getString(R.string.read_more)
             readMoreButton.setBackgroundColor(Color.TRANSPARENT)
-            readMoreButton.setTextColor(context.getColor(R.color.main))
+            readMoreButton.setTextColor(resources.getColor(R.color.main))
             readMoreButton.textSize = 14f
-            readMoreButton.setPadding(0, 0, 0, 0)
             readMoreButton.setTypeface(readMoreButton.typeface, Typeface.BOLD)
+            readMoreButton.setPadding(0, 0, 0, 0)
 
             // Set the listener for the "Read more" button
             readMoreButton.setOnClickListener {
                 markwon.setMarkdown(messageText, message)
-
                 translateMessageInFullPost(message) { translatedText ->
-                    // Set the translated text to the messageText TextView
                     markwon.setMarkdown(messageText, translatedText)
-
                 }
 
-
-
-                // Optionally, you can hide the "Read more" button after it's clicked
-                // Or make the button text change to "Read less"
-                readMoreButton.text = context.getString(R.string.read_less)
+                // Change button text to "Read less"
+                readMoreButton.text = getString(R.string.read_less)
                 readMoreButton.setOnClickListener {
-                    messageText.text = truncatedMessage
-                    readMoreButton.text = context.getString(R.string.read_more)
+                    markwon.setMarkdown(messageText, truncatedMessage)
+                    readMoreButton.text = getString(R.string.read_more)
                 }
             }
 
-            // Add the "Read more" button to the layout (ensure it has space in your layout)
-            val buttonContainer = findViewById<LinearLayout>(R.id.buttonContainer)
+            // Add the "Read more" button to the layout
             buttonContainer.removeAllViews()
             buttonContainer.addView(readMoreButton)
-        } else {
-            markwon.setMarkdown(messageText, message)
-
-
-            translateMessageInFullPost(message) { translatedText ->
-                // Set the translated text to the messageText TextView
-                markwon.setMarkdown(messageText, translatedText)
-                translated = true
-            }
-
-
         }
 
-
-
-        val edited = timelineItem.optInt("edited") == 1
-
+        // Date Handling
         val date = timelineItem.optString("created_at")
+        val edited = timelineItem.optInt("edited") == 1
         dateText.text = formatDate(date, edited)
 
         // Check for verification status
@@ -217,12 +194,30 @@ class FullPostActivity : AppCompatActivity() {
             pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
         }
 
+        // Handle Comments
         val comments = timelineItem.optJSONArray("comments")
         if (comments != null) {
-            displayComments(comments)
+            displayComments(comments, parentMessageId = id)
         }
 
+        // Handle the reply input and button for posting comments
+        itemView.setOnClickListener {
+            // Reset reply context when tapping outside the comment area
+            replyInput.requestFocus()
+            replyInput.setHint(getString(R.string.reply_hint))
+            replyingToCommentId = null
+        }
+
+        // Reply to comment
+        replyButton.setOnClickListener {
+            if (replyInput.text.toString().isNotEmpty() && replyingToCommentId == null) {
+                addComment(replyInput.text.toString(), id, id)
+                replyInput.text.clear()
+                replyingToCommentId = null  // Reset after posting
+            }
+        }
     }
+
 
     private fun addComment(message: String, id: Int, parentID: Int) {
         // Use coroutines to perform the network request on a background thread
@@ -434,7 +429,7 @@ class FullPostActivity : AppCompatActivity() {
 
                         val comments = timelineItem.optJSONArray("comments")
                         if (comments != null) {
-                            displayComments(comments)
+                            displayComments(comments, parentMessageId = id)
                         }
                     } else {
                         // Handle the case where there's no data in the timeline array
@@ -593,8 +588,7 @@ class FullPostActivity : AppCompatActivity() {
         }
     }
 
-
-    private fun displayComments(comments: JSONArray, nested: Boolean = false, parentContainer: LinearLayout? = null) {
+    private fun displayComments(comments: JSONArray, nested: Boolean = false, parentContainer: LinearLayout? = null, parentMessageId: Int) {
         val commentsContainer = parentContainer ?: findViewById<LinearLayout>(R.id.commentsContainer)
 
         for (i in 0 until comments.length()) {
@@ -614,8 +608,35 @@ class FullPostActivity : AppCompatActivity() {
             val commentVerifiedIcon = commentView.findViewById<ImageView>(R.id.commentVerifiedIcon)
             val nestedCommentsContainer = commentView.findViewById<LinearLayout>(R.id.nestedCommentsContainer)
 
-            // Set the comment message text
+            val markwon = Markwon.create(this)
+            var translated = false
+
             commentTextView.text = commentMessage
+
+            translateMessageInFullPost(commentMessage) { translatedText ->
+                // Set the translated text to the messageText TextView
+                markwon.setMarkdown(commentTextView, translatedText)
+                translated = true
+            }
+
+            // Set onClickListener for the commentView to set the reply context.
+            commentView.setOnClickListener {
+                replyInput.requestFocus()
+                replyInput.setHint(getString(R.string.commentReply, commentObject.optString("maker")))
+                replyingToCommentId = commentObject.optInt("id") // Store the ID of the comment being replied to
+                replyingComment = true
+            }
+
+            // Use the global replyButton listener to post replies to the correct comment
+            replyButton.setOnClickListener {
+                if (replyInput.text.toString().isNotEmpty() && replyingToCommentId != null) {
+                    addComment(replyInput.text.toString(), replyingToCommentId!!, parentMessageId)
+                    replyInput.text.clear()
+                    replyingComment = false
+                    replyingToCommentId = null  // Reset the reply context
+                    replyInput.setHint(getString(R.string.reply_hint))
+                }
+            }
 
             // Load profile picture using Glide
             val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/${commentObject.optString("maker_url")}/${commentObject.optString("maker_image")}"
@@ -626,20 +647,26 @@ class FullPostActivity : AppCompatActivity() {
             val edited = commentObject.optInt("edited") == 1
             commentDateText.text = formatDate(commentObject.optString("created_at"), edited)
 
+            commentUserName.setOnClickListener {
+                val intent = Intent(this, UserActivity::class.java)
+                intent.putExtra("userUrl", commentObject.optString("maker_url"))
+                startActivity(intent)
+            }
+
             // Show verification badge if verified
             commentVerifiedIcon.visibility = if (commentObject.optInt("verified") == 1) View.VISIBLE else View.GONE
 
-            // **Ensure nestedCommentsContainer is visible**
+            // Ensure nestedCommentsContainer is visible
             nestedCommentsContainer.visibility = View.VISIBLE
 
-            // **Indent nested comments for better UI**
+            // Indent nested comments for better UI
             if (nested) {
                 val params = commentView.layoutParams as ViewGroup.MarginLayoutParams
                 params.marginStart = 50  // Indent nested comments
                 commentView.layoutParams = params
             }
 
-            // **Add commentView to parent container**
+            // Add commentView to parent container
             commentsContainer.addView(commentView)
 
             // Process nested comments
@@ -647,19 +674,16 @@ class FullPostActivity : AppCompatActivity() {
             if (nestedComments != null && nestedComments.length() > 0) {
                 Log.d("CommentsDebug", "Found nested comments for: $commentMessage")
 
-                // **Force nested container to be visible**
+                // Force nested container to be visible
                 nestedCommentsContainer.visibility = View.VISIBLE
 
-                // **Pass nestedCommentsContainer as the new parentContainer**
-                displayComments(nestedComments, nested = true, parentContainer = nestedCommentsContainer)
+                // Pass nestedCommentsContainer as the new parentContainer
+                displayComments(nestedComments, nested = true, parentContainer = nestedCommentsContainer, parentMessageId)
             } else {
                 Log.d("CommentsDebug", "No nested comments for: $commentMessage")
             }
         }
     }
-
-
-
 
 
     fun voteOption(pollId: Int, optionId: Int, totalVotes: Int, votes: Int, multiple: Int, voted: Boolean) {
@@ -703,11 +727,12 @@ class FullPostActivity : AppCompatActivity() {
 
 
     private fun translateMessageInFullPost(message: String, callback: (String) -> Unit) {
-        // No need to get the activity since this is an Activity
-        val mainActivity = this as? MainActivity
-        mainActivity?.let {
-            it.translateMessage(message) { translatedText ->
-                callback(translatedText)  // Return the translated text via the callback
+
+        val mainActivity = MainActivity()
+
+        lifecycleScope.launch {
+            mainActivity.translateMessage(message) { translatedText ->
+                callback(translatedText)
             }
         }
     }

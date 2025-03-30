@@ -62,4 +62,11 @@
     <string name="email_label">Email:</string>
     <string name="password_label">Password:</string>
     <string name="no_bio">You don\'t have a bio yet</string>
+    <string name="follow_button">Follow</string>
+    <string name="viewingProfileOf">Profile page of %s</string>
+    <string name="no_bio_user">This user does not have a bio yet</string>
+    <string name="unfollow_button">Unfollow</string>
+    <string name="rate_limit_exceeded">Rate limit exceeded, you can only post once per minute</string>
+    <string name="something_went_wrong">Something went wrong, please try again</string>
+    <string name="commentReply">Replying to %s</string>
 </resources>

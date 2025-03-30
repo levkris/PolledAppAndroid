@@ -23,14 +23,30 @@
             android:layout_gravity="center_vertical"
             android:background="@drawable/poll_question_background"/>
 
+        <RadioButton
+            android:id="@+id/pollOptionButton"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp"
+            android:clickable="false"
+            android:layout_gravity="center_vertical"/>
+
+        <CheckBox
+            android:id="@+id/pollOptionCheckbox"
+            android:layout_width="31dp"
+            android:visibility="gone"
+            android:layout_height="20dp"
+            android:clickable="false"
+            android:layout_gravity="center_vertical"/>
+
         <!-- Poll Option Text (on top of progress bar) -->
         <TextView
             android:id="@+id/pollOptionText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start|center_vertical"
-            android:layout_margin="10dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:layout_marginStart="35dp"
             android:text="Poll Option"
             android:gravity="start"/>
 

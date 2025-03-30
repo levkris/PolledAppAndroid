@@ -5,7 +5,10 @@ import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.wokki.polled.R
+import com.wokki.polled.RefreshAccessToken
+import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -81,8 +84,16 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
                         val responseData = response.body?.string()
                         if (responseData != null) {
                             val json = JSONObject(responseData)
+                            println(json)
 
-                            val status = json.getString("status")
+
+                            val status = if (json.has("status")) {
+                                json.getString("status")
+                            } else {
+                                "error"
+                            }
+                            println(status)
+
                             if (status == "success") {
                                 val profile = json.getJSONObject("profile")
 
@@ -143,14 +154,22 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
 
                             } else {
                                 // Handle case where status is not "success"
-                                val errorMessage = json.optString("message", "Unknown error")
-                                _profileData.postValue("Error: $errorMessage")
+                                val errorMessage = json.optString("error", "Unknown error")
+
+                                if (errorMessage == "Invalid or expired access token") {
+                                    val refreshAccessToken = RefreshAccessToken(context)
+
+                                    viewModelScope.launch {
+                                        refreshAccessToken.refreshTokenIfNeeded()
+                                    }
+
+                                }
+
                             }
                         }
                     }
                 } catch (e: Exception) {
-                    // Handle any other unexpected errors and avoid crashing the app
-                    _profileData.postValue("Error: ${e.message}")
+                    println(e)
                 }
             }
         })

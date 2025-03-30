@@ -59,6 +59,8 @@
                     android:layout_marginLeft="5dp"
                     android:src="@drawable/verified_24"
                     android:visibility="gone" />
+
+
             </LinearLayout>
 
             <!-- Date -->
@@ -121,6 +123,28 @@
                 android:layout_height="wrap_content">
                 <!-- Poll options will be added dynamically here -->
             </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_marginTop="10dp"
+
+            android:layout_height="match_parent">
+            <ImageButton
+                android:id="@+id/like"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/like" />
+
+            <TextView
+                android:id="@+id/likeCount"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:textSize="16sp"
+                android:layout_marginLeft="5dp"/>
+
         </LinearLayout>
 
     </LinearLayout>

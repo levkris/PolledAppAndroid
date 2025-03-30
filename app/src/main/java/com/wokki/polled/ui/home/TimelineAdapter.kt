@@ -16,8 +16,11 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.Button
+import android.widget.CheckBox
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RadioButton
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -27,6 +30,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.wokki.polled.FullPostActivity
 import com.wokki.polled.MainActivity
 import com.wokki.polled.R
+import com.wokki.polled.UserActivity
 import io.noties.markwon.Markwon
 import okhttp3.Call
 import okhttp3.Callback
@@ -34,6 +38,7 @@ import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -156,6 +161,9 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         private val pollLayout: LinearLayout = itemView.findViewById(R.id.pollLayout)  // Assuming this is a LinearLayout
         private val pollQuestionText: TextView = itemView.findViewById(R.id.pollQuestionText)  // TextView for poll question
         private val pollOptionsContainer: LinearLayout = itemView.findViewById(R.id.pollOptionsContainer)  // LinearLayout for options
+        private val likeButton: ImageButton = itemView.findViewById(R.id.like)
+        private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
+
         val markwon = Markwon.create(context)
 
         fun bind(timelineItem: JSONObject) {
@@ -175,7 +183,40 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 intent.putExtra("POST_DATA", timelineItem.toString())
                 context.startActivity(intent)  // Start activity with context
             }
-            // Construct the profile picture URL dynamically
+
+            userName.setOnClickListener {
+                val intent = Intent(context, UserActivity::class.java)
+                intent.putExtra("userUrl", timelineItem.optString("maker_url"))
+                context.startActivity(intent)
+            }
+
+            var likes = timelineItem.optInt("likes")
+            var liked = timelineItem.optBoolean("liked")
+            val messageId = timelineItem.optInt("id")
+
+            if (liked) {
+                likeButton.setImageResource(R.drawable.liked)
+            } else {
+                likeButton.setImageResource(R.drawable.like)
+            }
+            likeCount.text = likes.toString()
+
+            likeButton.setOnClickListener {
+                if (liked) {
+                    likes--
+                    likeCount.text = likes.toString()
+                    liked = false
+                    likeButton.setImageResource(R.drawable.like)
+                    updateLike(messageId)
+                } else {
+                    likes++
+                    likeCount.text = likes.toString()
+                    liked = true
+                    likeButton.setImageResource(R.drawable.liked)
+                    updateLike(messageId)
+                }
+            }
+
             val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
 
             // Load the profile picture using Glide
@@ -281,10 +322,55 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             }
         }
 
+        fun updateLike(messageId: Int) {
+            val url = "https://wokki20.nl/polled/api/v1/like"
 
+            // Create FormData
+            val formBody = FormBody.Builder()
+                .add("message_id", messageId.toString())
+                .build()
+
+            // Get the access token from local storage
+            val accessToken = "Bearer $accessToken" // Implement this to fetch the token
+
+            // Create the request
+            val request = Request.Builder()
+                .url(url)
+                .post(formBody)
+                .addHeader("Authorization", accessToken)
+                .build()
+
+            // Create OkHttpClient to make the request
+            val client = OkHttpClient()
+
+            // Make the request
+            client.newCall(request).enqueue(object : Callback {
+                override fun onResponse(call: Call, response: Response) {
+                    if (response.isSuccessful) {
+                        val responseData = response.body?.string()
+                        val jsonObject = JSONObject(responseData)
+
+                        if (jsonObject.getString("status") == "success") {
+                            // Success
+                            println(jsonObject)
+                        } else {
+                            // Failure
+                            throw IOException("Error: ${jsonObject.getString("error")}\n${jsonObject.getString("message")}")
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call, e: IOException) {
+                    // Handle failure
+                    e.printStackTrace()
+                }
+            })
+        }
 
         private fun showPostOptions(post: JSONObject, canChange: Boolean, translated: Boolean) {
             val bottomSheetDialog = BottomSheetDialog(itemView.context)
+
+
             val view = LayoutInflater.from(itemView.context).inflate(R.layout.bottom_sheet_post_options, null)
 
             val editPost = view.findViewById<TextView>(R.id.editPost)
@@ -572,6 +658,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                     pollQuestionText.text = translatedText
                 }
             }
+            val multiple = poll.optInt("multiple_choice")
 
 
             // Clear existing options in the pollOptionsContainer
@@ -584,12 +671,19 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 val optionText = option.optString("text")
                 val percentage = option.optInt("percentage")
                 val votes = option.optInt("votes")
+                var voted = option.optBoolean("voted")
 
                 // Inflate the option item and find the TextViews inside it
                 val optionView = LayoutInflater.from(itemView.context).inflate(R.layout.poll_option_item, pollOptionsContainer, false)
                 val optionTextView = optionView.findViewById<TextView>(R.id.pollOptionText)  // For the option text
                 val percentageTextView = optionView.findViewById<TextView>(R.id.pollPercentage)  // For the percentage
                 val progressBarBackground = optionView.findViewById<LinearLayout>(R.id.progressBarBackground)
+                val optionButton = optionView.findViewById<RadioButton>(R.id.pollOptionButton)
+                val optionCheckbox = optionView.findViewById<CheckBox>(R.id.pollOptionCheckbox)
+                var correctOptionButton = "option"
+
+                optionView.tag = option.optInt("id")  // Store option ID
+                optionTextView.tag = votes  // Store initial vote count
 
                 // Decode the HTML-encoded string back to normal
                 val decodedText = Html.fromHtml(optionText).toString()
@@ -600,6 +694,21 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                     translateMessageInAdapter(decodedText) { translatedText ->
                         // Set the translated text to the messageText TextView
                         optionTextView.text = translatedText
+                    }
+                }
+
+                if (multiple == 1) {
+                    optionCheckbox.visibility = View.VISIBLE
+                    optionButton.visibility = View.GONE
+                    correctOptionButton = "checkbox"
+                }
+
+
+                if (voted) {
+                    if (correctOptionButton == "checkbox") {
+                        optionCheckbox.isChecked = true
+                    } else {
+                        optionButton.isChecked = true
                     }
                 }
 
@@ -618,7 +727,26 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 }
 
                 optionView.setOnClickListener {
-                    voteOption(poll.optInt("id"), option.optInt("id"), poll.optInt("total_votes"), votes, poll.optInt("multiple"), poll.optBoolean("voted"))
+                    voteOption(poll.optInt("id"), option.optInt("id"), poll.optInt("total_votes"), votes, poll.optInt("multiple"), voted, pollLayout)
+
+                    if (correctOptionButton == "checkbox") {
+                        if (optionCheckbox.isChecked) {
+                            voted = false
+                            optionCheckbox.isChecked = false
+                        } else {
+                            voted = true
+                            optionCheckbox.isChecked = true
+                        }
+                    } else {
+                        if (optionButton.isChecked) {
+                            voted = false
+                            optionButton.isChecked = false
+                        } else {
+                            voted = true
+                            removeOtherCheckedButtons(pollLayout)
+                            optionButton.isChecked = true
+                        }
+                    }
                 }
 
                 // Add the option to the container
@@ -627,9 +755,26 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         }
 
 
+        fun removeOtherCheckedButtons(pollLayout: LinearLayout) {
+            val pollOptionsContainer = pollLayout.findViewById<LinearLayout>(R.id.pollOptionsContainer)
+
+            for (i in 0 until pollOptionsContainer.childCount) {
+                val optionView = pollOptionsContainer.getChildAt(i)
+                val optionButton = optionView.findViewById<RadioButton>(R.id.pollOptionButton)
+                optionButton.isChecked = false
+            }
+        }
 
 
-        fun voteOption(pollId: Int, optionId: Int, totalVotes: Int, votes: Int, multiple: Int, voted: Boolean) {
+        fun voteOption(
+            pollId: Int,
+            optionId: Int,
+            totalVotes: Int,
+            votes: Int,
+            multiple: Int,
+            voted: Boolean,
+            pollLayout: LinearLayout
+        ) {
             val formBody = FormBody.Builder()
                 .add("poll_id", pollId.toString())
                 .add("option_id", optionId.toString())
@@ -647,15 +792,26 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 override fun onResponse(call: Call, response: Response) {
                     if (response.isSuccessful) {
                         val data = response.body?.string()
-                        val jsonResponse = JSONObject(data)
+                        try {
+                            val jsonResponse = JSONObject(data)
 
-                        if (jsonResponse.getString("status") == "success") {
-
-
-
-
-                        } else {
-                            println("Error: ${jsonResponse.getString("error")}")
+                            val status = jsonResponse.optString("status", "")
+                            if (status == "success") {
+                                var newTotalVotes = totalVotes
+                                if (multiple == 0) {
+                                    if (voted) {
+                                        newTotalVotes--
+                                    }
+                                }
+                                val selectedOptionId = jsonResponse.optInt("selected_option_id", optionId)
+                                pollLayout.post {
+                                    updatePollUI(pollOptionsContainer, newTotalVotes, votes)
+                                }
+                            } else {
+                                println("Error: Response status not successful.")
+                            }
+                        } catch (e: JSONException) {
+                            println("Error parsing JSON response: ${e.message}")
                         }
                     } else {
                         println("Network response was not ok, status: ${response.code}")
@@ -667,6 +823,44 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 }
             })
         }
+
+
+
+        fun updatePollUI(pollOptionsContainer: LinearLayout, newTotalVotes: Int, votes: Int) {
+            println("Updating UI...")
+
+            // Loop through each poll option and update the percentage
+            for (i in 0 until pollOptionsContainer.childCount) {
+                val optionView = pollOptionsContainer.getChildAt(i)
+
+                val optionId = optionView.tag as? Int ?: continue
+                val optionTextView = optionView.findViewById<TextView>(R.id.pollOptionText)
+                val percentageTextView = optionView.findViewById<TextView>(R.id.pollPercentage)
+                val progressBarBackground = optionView.findViewById<LinearLayout>(R.id.progressBarBackground)
+
+                // Get the current votes for this option (stored as the tag on optionTextView)
+                var votes = optionTextView.tag as? Int ?: 0
+
+                // Recalculate percentage
+
+                val newPercentage = if (newTotalVotes > 0) (votes.toFloat() / newTotalVotes * 100).toInt() else 0
+
+                // Set the percentage text
+                percentageTextView.text = "$newPercentage%"
+
+                // Update progress bar width dynamically
+                optionView.post {
+                    val progressBarWidth = (newPercentage / 100f) * pollOptionsContainer.width
+                    val params = progressBarBackground.layoutParams
+                    params.width = progressBarWidth.toInt()
+                    progressBarBackground.layoutParams = params
+                    println("Updated bar width: ${params.width}px for option $optionId")
+                }
+            }
+        }
+
+
+
 
 
         private fun translateMessageInAdapter(message: String, callback: (String) -> Unit) {

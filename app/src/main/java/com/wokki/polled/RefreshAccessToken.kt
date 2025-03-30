@@ -8,7 +8,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
-import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -38,25 +38,30 @@ class RefreshAccessToken(private val context: Context) {
     private fun isTokenExpired(tokenKey: String): Boolean {
         val expiresAtString = sharedPreferences.getString(tokenKey, null)
 
-        println("$tokenKey stored value: $expiresAtString") // Check what's stored
+        println("$tokenKey stored value: $expiresAtString") // Debug output
 
         if (expiresAtString == null) {
             println("$tokenKey is NULL, assuming expired.")
             return true
         }
 
-        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        formatter.timeZone = TimeZone.getTimeZone("Europe/Amsterdam")
-
         return try {
-            val expiresAt = formatter.parse(expiresAtString)
-            val now = Calendar.getInstance(TimeZone.getTimeZone("Europe/Amsterdam")).time
-
-            if (expiresAt == null) {
-                println("$tokenKey parsing failed, assuming expired.")
-                return true
+            val expiresAtMillis = expiresAtString.toLongOrNull()
+            val expiresAt: Date = if (expiresAtMillis != null) {
+                Date(expiresAtMillis) // Als het een getal is, maak er een Date van
+            } else {
+                // Als het geen milliseconden zijn, probeer het als datum te parsen
+                val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                formatter.timeZone = TimeZone.getTimeZone("Europe/Amsterdam")
+                formatter.parse(expiresAtString) ?: return true
             }
 
+            val now = Date()
+
+            // Debug output
+            val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone("Europe/Amsterdam")
+            }
             println("Now: ${formatter.format(now)} | Token Expiration: ${formatter.format(expiresAt)}")
 
             val expired = now.after(expiresAt)
@@ -66,9 +71,10 @@ class RefreshAccessToken(private val context: Context) {
         } catch (e: Exception) {
             e.printStackTrace()
             println("$tokenKey encountered an error, assuming expired.")
-            true // If parsing fails, assume expired
+            true // Als er een fout optreedt, ga er dan vanuit dat het token verlopen is
         }
     }
+
 
 
 

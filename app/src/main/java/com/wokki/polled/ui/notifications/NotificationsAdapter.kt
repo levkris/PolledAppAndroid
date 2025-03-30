@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.wokki.polled.FullPostActivity
 import com.wokki.polled.R
+import com.wokki.polled.UserActivity
 import com.wokki.polled.databinding.NotificationItemBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +42,8 @@ class NotificationsAdapter(private val notifications: List<Notification>, privat
         val notification = notifications[position]
         holder.bind(notification)
     }
+
+
 
     override fun getItemCount(): Int = notifications.size
 
@@ -84,7 +87,9 @@ class NotificationsAdapter(private val notifications: List<Notification>, privat
 
                 // Handle the click action based on the notification type
                 if (action == "user") {
-                    // Handle user action
+                    val intent = Intent(context, UserActivity::class.java)
+                    intent.putExtra("userUrl", notification.by_user_url)
+                    context.startActivity(intent)
                 } else if (action == "post") {
                     val url = "https://wokki20.nl/polled/api/v1/timeline?limit=1&offset_id=$postId"
 

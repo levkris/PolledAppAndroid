@@ -1,13 +1,19 @@
 package com.wokki.polled
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Html
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -20,13 +26,17 @@ import com.google.mlkit.nl.translate.TranslatorOptions
 import com.wokki.polled.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Calendar
 import java.util.Locale
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,9 +45,42 @@ class MainActivity : AppCompatActivity() {
     private val targetLanguage = Locale.getDefault().language
 
     private lateinit var sharedPreferences: SharedPreferences
-    private var accessToken: String? = null
-
     private val context = this
+    private var accessToken: String? = null
+    private val handler = Handler(Looper.getMainLooper())
+    var isAppOpen = false // Track if the app is in the foreground
+
+    private val notificationRunnable: Runnable = object : Runnable {
+        override fun run() {
+            val calendar = Calendar.getInstance()
+            val hour = calendar.get(Calendar.HOUR_OF_DAY) // 24-hour format
+
+            if (hour !in 23..6) { // Skip from 23:00 to 06:59
+                if (isAppOpen) {
+                    showNotificationsDot() // Run a different function when the app is open
+                    handler.postDelayed(this, 60000) // Re-run every 1 minute
+
+                } else {
+                    fetchNotifications()
+                    handler.postDelayed(this, 600000) // Re-run every 10 minutes
+
+                }
+            }
+
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        isAppOpen = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isAppOpen = false
+    }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +92,6 @@ class MainActivity : AppCompatActivity() {
             finish() // Close the app if not logged in
             return
         }
-
         sharedPreferences = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
         accessToken = sharedPreferences.getString("access_token", null)
 
@@ -58,6 +100,12 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             refreshAccessToken.refreshTokenIfNeeded()
         }
+
+        val postId = intent.getStringExtra("postId")
+        if (postId != null) {
+            showFullPost(postId, context)
+        }
+
 
         // Continue with normal setup for logged-in user
         supportActionBar?.hide()
@@ -85,6 +133,9 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Received post ID: $post")
             showFullPost(post, context)
         }
+
+        // Start periodic notification fetch
+        handler.post(notificationRunnable)
     }
 
     private fun navigateToPage(page: String) {
@@ -101,6 +152,85 @@ class MainActivity : AppCompatActivity() {
 
 
     }
+
+    fun showNotificationsDot() {
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val client = OkHttpClient()
+            val url = "https://wokki20.nl/polled/api/v1/notifications?read=false"
+
+            // Build the request with Authorization header if token exists
+            val request = Request.Builder()
+                .url(url)
+                .apply {
+                    accessToken?.let {
+                        addHeader("Authorization", "Bearer $it")
+                    }
+                }
+                .build()
+
+            try {
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    if (!responseBody.isNullOrEmpty()) {
+                        // Directly process the response (assuming it's JSON or similar)
+                        val jsonResponse = JSONObject(responseBody)
+
+                        // Handle expired token
+                        if (jsonResponse.optString("error").contains("Invalid or expired access token")) {
+                            context?.let {
+                                RefreshAccessToken(it).apply {
+                                    lifecycleScope.launch { refreshTokenIfNeeded() }
+                                }
+                            }
+                        }
+
+                        // If the notifications array is part of the response
+                        val notifications = jsonResponse.optJSONArray("notifications")
+                        if (notifications != null && notifications.length() > 0) {
+                            // Loop through notifications and send them
+                            withContext(Dispatchers.Main) {
+                                binding.navView.getOrCreateBadge(R.id.navigation_notifications).apply {
+                                    isVisible = false
+                                    number = 0
+                                }
+
+                                for (i in 0 until notifications.length()) {
+                                    val notification = notifications.getJSONObject(i)
+                                    if (notification.optInt("is_read") == 0) {
+                                        binding.navView.getOrCreateBadge(R.id.navigation_notifications).apply {
+                                            isVisible = true
+                                            number += 1 // Increment the current badge number
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                println("No unread notifications.")
+                            }
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            println("Error: Empty response body.")
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        println("Error: Failed to fetch notifications. Response code: ${response.code}")
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    println("Error: Network failure.")
+                }
+                e.printStackTrace()
+            }
+        }
+    }
+
 
     private fun showFullPost(postId: String, context: Context) {
         val url = "https://wokki20.nl/polled/api/v1/timeline?limit=1&offset_id=$postId"
@@ -171,7 +301,7 @@ class MainActivity : AppCompatActivity() {
             .replace("`", "\uE004")  // Escape '`' (used for code blocks)
             .replace("\n", "\uE000") // Escape newline character
 
-        // Preserve mentions (@username)
+        // Preserve mentions (@username) and apply bold formatting + color
         val mentionRegex = "@[^\\s\\\\/:*?\"<>|]+".toRegex()
         val mentions = mutableMapOf<String, String>()
         var tempMessage = escapedMessage
@@ -179,7 +309,7 @@ class MainActivity : AppCompatActivity() {
 
         tempMessage = mentionRegex.replace(tempMessage) { matchResult ->
             val placeholder = "\uE100$index\uE101"
-            mentions[placeholder] = matchResult.value
+            mentions[placeholder] = "**<font color='#FF6347'>${matchResult.value}</font>**"  // Apply bold and color (using a placeholder)
             index++
             placeholder
         }
@@ -203,13 +333,24 @@ class MainActivity : AppCompatActivity() {
                             .replace("\uE004", "`")
                             .replace("\uE000", "\n")
 
-                        // Restore mentions
+                        // Restore mentions (with bold and color)
                         mentions.forEach { (placeholder, original) ->
                             formattedText = formattedText.replace(placeholder, original)
                         }
 
-                        Handler(Looper.getMainLooper()).post {
-                            onTranslated(formattedText)
+                        // Here, we need to process the formatted text to interpret HTML tags
+                        try {
+                            // Parse HTML to apply color formatting
+                            val htmlFormattedText = Html.fromHtml(formattedText, Html.FROM_HTML_MODE_LEGACY).toString()
+
+                            Handler(Looper.getMainLooper()).post {
+                                onTranslated(htmlFormattedText)
+                            }
+                        } catch (e: Exception) {
+                            // If HTML processing fails, return the original message
+                            Handler(Looper.getMainLooper()).post {
+                                onTranslated(message)
+                            }
                         }
                     }
                     .addOnFailureListener {
@@ -224,6 +365,212 @@ class MainActivity : AppCompatActivity() {
                 }
             }
     }
+    private fun fetchNotifications() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val client = OkHttpClient()
+            val url = "https://wokki20.nl/polled/api/v1/notifications"
+
+            // Build the request with Authorization header if token exists
+            val request = Request.Builder()
+                .url(url)
+                .apply {
+                    accessToken?.let {
+                        addHeader("Authorization", "Bearer $it")
+                    }
+                }
+                .build()
+
+            try {
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    if (!responseBody.isNullOrEmpty()) {
+                        // Directly process the response (assuming it's JSON or similar)
+                        val jsonResponse = JSONObject(responseBody)
+
+                        // Handle expired token
+                        if (jsonResponse.optString("error").contains("Invalid or expired access token")) {
+                            context?.let {
+                                RefreshAccessToken(it).apply {
+                                    lifecycleScope.launch { refreshTokenIfNeeded() }
+                                }
+                            }
+                        }
+
+                        // If the notifications array is part of the response
+                        val notifications = jsonResponse.optJSONArray("notifications")
+                        if (notifications != null && notifications.length() > 0) {
+                            // Loop through notifications and send them
+                            withContext(Dispatchers.Main) {
+                                for (i in 0 until notifications.length()) {
+                                    val notification = notifications.getJSONObject(i)
+                                    if (notification.optInt("is_read") == 0) {
+                                        sendNotification(notification)
+                                    }
+                                }
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                println("No unread notifications.")
+                            }
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            println("Error: Empty response body.")
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        println("Error: Failed to fetch notifications. Response code: ${response.code}")
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    println("Error: Network failure.")
+                }
+                e.printStackTrace()
+            }
+        }
+    }
+
+
+
+    private fun sendNotification(notification: JSONObject) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val type = notification.optString("type", "")
+        val by_user = notification.optString("by_user", "Unknown User")
+        val by_user_url = notification.optString("by_user_url", "")
+
+        val comment_message = if (type == "comment") {
+            notification.optString("comment_message", "This message has been deleted")
+        } else {
+            null
+        }
+        val post_message = if (type == "new_post") {
+            notification.optString("post_message", "deleted this post")
+        } else {
+            null
+        }
+
+        val title = getCorrectTitle(type, by_user)
+
+        val correctMessage = if (type == "comment") {
+            comment_message?.replace("%20", " ")
+        } else {
+            post_message?.replace("%20", " ")
+        } ?: "No message available"
+
+        val message = getCorrectMessage(type, correctMessage, by_user)
+
+        // Decide which activity to open
+        val intent = when (type) {
+            "follow", "unfollow" -> {
+                Intent(this, UserActivity::class.java).apply {
+                    putExtra("userUrl", by_user_url)
+                }
+            }
+            "comment", "like", "mention", "vote", "new_post" -> {
+                val targetMessageId = notification.optInt("target_message_id").toString()
+                Intent(this, MainActivity::class.java).apply {
+                    putExtra("postId", targetMessageId)
+                }
+            }
+            else -> {
+                Intent(this, MainActivity::class.java)
+            }
+        }.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Build the notification
+        val notificationBuilder = NotificationCompat.Builder(this, "default_channel")
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setSmallIcon(R.drawable.ic_notifications_icon)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "default_channel", "Default Notifications", NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications for unread alerts"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notificationId = notification.hashCode()
+        notificationManager.notify(notificationId, notificationBuilder.build())
+    }
+
+
+
+
+    fun getCorrectTitle(type: String, byUser: String): String {
+        if (type == "follow") {
+            return "$byUser is now following you"
+        } else if (type == "unfollow") {
+            return "$byUser is no longer following you"
+        } else if (type == "like") {
+            return "Someone liked your post"
+        } else if (type == "comment") {
+            return "$byUser commented on your post"
+        } else if (type == "mention") {
+            return "$byUser mentioned you in their post"
+        } else if (type == "vote") {
+            return "$byUser voted on your post"
+        } else if (type == "new_post") {
+            return "Someone you follow just posted a new post"
+        }
+        return ""
+    }
+
+    fun getCorrectMessage(type: String, message: String?, byUser: String): String {
+        return when (type) {
+            "follow", "unfollow" -> {
+                "Click to go to the profile of $byUser."
+            }
+            "like" -> {
+                "$byUser liked your post."
+            }
+            "comment" -> {
+                if (message == "This message has been deleted") message ?: "" else "\"$message\""
+            }
+            "mention" -> {
+                "$byUser mentioned you in a post."
+            }
+            "vote" -> {
+                "$byUser voted on your poll."
+            }
+            "new_post" -> {
+                if (message == "deleted this post") {
+                    "$byUser $message"
+                } else {
+                    "$byUser posted: \"$message\""
+                }
+            }
+            else -> message ?: ""
+        }
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Stop the periodic check when the activity is destroyed
+        handler.removeCallbacks(notificationRunnable)
+    }
+
 
 }
 

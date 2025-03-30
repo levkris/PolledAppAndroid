@@ -72,6 +72,7 @@ class ProfileFragment : Fragment() {
         profileViewModel.imageUrl.observe(viewLifecycleOwner) { imageUrl ->
             Glide.with(this)
                 .load(imageUrl)
+                .centerCrop()
                 .transform(RoundedCorners(16))  // Set the radius here (e.g., 16dp)
                 .into(binding.profileImage)
         }

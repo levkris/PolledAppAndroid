@@ -7,10 +7,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.wokki.polled.R
+import com.wokki.polled.RefreshAccessToken
 import com.wokki.polled.databinding.FragmentNotificationsBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,12 +55,21 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
         savedInstanceState: Bundle?
     ): View? {
         _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
+
         return binding.root
+
+
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val navView = requireActivity().findViewById<BottomNavigationView>(R.id.nav_view)
+
+        navView.getOrCreateBadge(R.id.navigation_notifications).apply {
+            isVisible = false
+            number = 0
+        }
         // Initialize the adapter with an empty list
         notificationsAdapter = NotificationsAdapter(notificationsList, requireContext())
 
@@ -98,6 +110,16 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
                             responseBody, object : TypeToken<NotificationResponse>() {}.type
                         )
 
+                        if (responseBody.contains("error") && responseBody.contains("Invalid or expired access token")) {
+                            val refreshAccessToken = context?.let { RefreshAccessToken(it) }
+
+                            lifecycleScope.launch {
+                                if (refreshAccessToken != null) {
+                                    refreshAccessToken.refreshTokenIfNeeded()
+
+                                }
+                            }
+                        }
                         // Check if the notifications list is null or empty
                         val notifications = notificationResponse.notifications
                         if (notifications != null) {
@@ -107,6 +129,7 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
                                 notificationsAdapter.notifyDataSetChanged()
                             }
                         } else {
+
                             // Handle the case where notifications are null
                             withContext(Dispatchers.Main) {
                                 println("Error: No notifications found.")

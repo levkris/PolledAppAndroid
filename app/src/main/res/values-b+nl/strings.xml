@@ -65,5 +65,12 @@
     <string name="email_label">Email:</string>
     <string name="password_label">Wachtwoord:</string>
     <string name="no_bio">Je hebt nog geen bio</string>
+    <string name="follow_button">Volg</string>
+    <string name="viewingProfileOf">Profiel pagina van %s</string>
+    <string name="no_bio_user">Deze gebruiker heeft geen bio</string>
+    <string name="unfollow_button">Ontvolg</string>
+    <string name="rate_limit_exceeded">Post limiet behaald, je mag per minuut maar 1 bericht plaatsen</string>
+    <string name="something_went_wrong">Er ging iets mis, probeer het opnieuw</string>
+    <string name="commentReply">Reageer op %s</string>
 
 </resources>

@@ -17,8 +17,10 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.wokki.polled.R
+import com.wokki.polled.RefreshAccessToken
 import com.wokki.polled.databinding.FragmentPostBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -244,7 +246,6 @@ class PostFragment : Fragment() {
 
                 // Handle the response (success or failure)
                 if (response != null) {
-                    Log.d("CreatePost", "Success: $response")
                     if (response.contains("success") && response.contains("Post created successfully")) {
                         navigateToHomeFragment()
 
@@ -252,7 +253,18 @@ class PostFragment : Fragment() {
                     } else if (response.contains("error")) {
                         if (response.contains("Rate limit exceeded")) {
 
-                            Toast.makeText(context, "Rate limit exceeded, you can only post once per minute", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, getString(R.string.rate_limit_exceeded), Toast.LENGTH_LONG).show()
+
+                        } else if (response.contains("Invalid or expired access token")) {
+                            val refreshAccessToken = context?.let { RefreshAccessToken(it) }
+
+                            lifecycleScope.launch {
+                                if (refreshAccessToken != null) {
+                                    refreshAccessToken.refreshTokenIfNeeded()
+                                    Toast.makeText(context, getString(R.string.something_went_wrong), Toast.LENGTH_LONG).show()
+                                }
+                            }
+
 
                         }
                     }
