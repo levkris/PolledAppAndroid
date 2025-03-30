@@ -1,6 +1,7 @@
 package com.wokki.polled
 
 import android.animation.ValueAnimator
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -15,6 +16,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -25,8 +28,10 @@ import android.widget.RadioButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import io.noties.markwon.Markwon
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +77,11 @@ class FullPostActivity : AppCompatActivity() {
     private lateinit var replyButton: ImageButton
     private var replyingComment = false
     private var replyingToCommentId: Int? = null
+    private lateinit var likeButton: ImageButton
+    private lateinit var likeCount: TextView
+    private lateinit var visibilityText: TextView
+    private var autoTranslate: Boolean = false
+    private lateinit var itemView: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,13 +100,19 @@ class FullPostActivity : AppCompatActivity() {
         backButton = findViewById(R.id.backButton)
         replyInput = findViewById(R.id.replyInput)
         replyButton = findViewById(R.id.replyButton)
+        visibilityText = findViewById(R.id.visibility)
+        likeButton = findViewById(R.id.like)
+        likeCount = findViewById(R.id.likeCount)
 
         val markwon = Markwon.create(this)
 
         supportActionBar?.hide()
 
+        itemView = findViewById(R.id.linearLayout)
+
         sharedPreferences = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
         accessToken = sharedPreferences.getString("access_token", null)
+        autoTranslate = sharedPreferences.getBoolean("auto_translate", false)
 
         // Retrieve the JSON string from the intent
         val postString = intent.getStringExtra("POST_DATA")
@@ -136,6 +152,57 @@ class FullPostActivity : AppCompatActivity() {
             message
         }
 
+        val visibility = timelineItem.optString("visibility")
+        if (visibility == "public") {
+            visibilityText.visibility = View.GONE
+        } else {
+            visibilityText.visibility = View.VISIBLE
+            if (visibility == "private") {
+                visibilityText.text = context.getString(R.string.private_post)
+                // set the icon
+                visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_private, 0)
+            } else if (visibility == "unlisted") {
+                visibilityText.text = context.getString(R.string.unlisted_post)
+                // set the icon
+                visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_unlisted, 0)
+            } else if (visibility == "followers") {
+                visibilityText.text = context.getString(R.string.followers_post)
+                // set the icon
+                visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_followers, 0)
+            } else if (visibility == "friends") {
+                visibilityText.text = context.getString(R.string.friends_post)
+                // set the icon
+                visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_friends, 0)
+            }
+        }
+
+        var likes = timelineItem.optInt("likes")
+        var liked = timelineItem.optBoolean("liked")
+        val messageId = timelineItem.optInt("id")
+
+        if (liked) {
+            likeButton.setImageResource(R.drawable.liked)
+        } else {
+            likeButton.setImageResource(R.drawable.like)
+        }
+        likeCount.text = likes.toString()
+
+        likeButton.setOnClickListener {
+            if (liked) {
+                likes--
+                likeCount.text = likes.toString()
+                liked = false
+                likeButton.setImageResource(R.drawable.like)
+                updateLike(messageId)
+            } else {
+                likes++
+                likeCount.text = likes.toString()
+                liked = true
+                likeButton.setImageResource(R.drawable.liked)
+                updateLike(messageId)
+            }
+        }
+
         userName.setOnClickListener {
             val intent = Intent(this, UserActivity::class.java)
             intent.putExtra("userUrl", timelineItem.optString("maker_url"))
@@ -146,11 +213,12 @@ class FullPostActivity : AppCompatActivity() {
         markwon.setMarkdown(messageText, truncatedMessage)
 
         var translated = false
-        translateMessageInFullPost(truncatedMessage) { translatedText ->
-            markwon.setMarkdown(messageText, translatedText)
-            translated = true
+        if (autoTranslate) {
+            translateMessageInFullPost(truncatedMessage) { translatedText ->
+                markwon.setMarkdown(messageText, translatedText)
+                translated = true
+            }
         }
-
         // Add a "Read more" button dynamically if the message was truncated
         if (message.length > 273) {
             val readMoreButton = Button(this)
@@ -164,14 +232,20 @@ class FullPostActivity : AppCompatActivity() {
             // Set the listener for the "Read more" button
             readMoreButton.setOnClickListener {
                 markwon.setMarkdown(messageText, message)
-                translateMessageInFullPost(message) { translatedText ->
-                    markwon.setMarkdown(messageText, translatedText)
+                if (autoTranslate) {
+                    translateMessageInFullPost(message) { translatedText ->
+                        markwon.setMarkdown(messageText, translatedText)
+                    }
                 }
-
                 // Change button text to "Read less"
                 readMoreButton.text = getString(R.string.read_less)
                 readMoreButton.setOnClickListener {
                     markwon.setMarkdown(messageText, truncatedMessage)
+                    if (autoTranslate) {
+                        translateMessageInFullPost(truncatedMessage) { translatedText ->
+                            markwon.setMarkdown(messageText, translatedText)
+                        }
+                    }
                     readMoreButton.text = getString(R.string.read_more)
                 }
             }
@@ -193,7 +267,8 @@ class FullPostActivity : AppCompatActivity() {
         // Poll Handling
         val poll = timelineItem.optJSONObject("poll")
         if (poll != null) {
-            displayPoll(poll, true)  // Call displayPoll to handle the poll section
+
+            displayPoll(poll, autoTranslate)  // Call displayPoll to handle the poll section
         } else {
             pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
         }
@@ -220,8 +295,211 @@ class FullPostActivity : AppCompatActivity() {
                 replyingToCommentId = null  // Reset after posting
             }
         }
+
+        itemView.setOnLongClickListener {
+            showPostOptions(timelineItem, timelineItem.optBoolean("can_change"), translated, false)
+            true
+        }
+        messageText.setOnLongClickListener {
+            showPostOptions(timelineItem, timelineItem.optBoolean("can_change"), translated, false)
+            true
+        }
     }
 
+    fun updateLike(messageId: Int) {
+        val url = "https://wokki20.nl/polled/api/v1/like"
+
+        // Create FormData
+        val formBody = FormBody.Builder()
+            .add("message_id", messageId.toString())
+            .build()
+
+        // Get the access token from local storage
+        val accessToken = "Bearer $accessToken" // Implement this to fetch the token
+
+        // Create the request
+        val request = Request.Builder()
+            .url(url)
+            .post(formBody)
+            .addHeader("Authorization", accessToken)
+            .build()
+
+        // Create OkHttpClient to make the request
+        val client = OkHttpClient()
+
+        // Make the request
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val responseData = response.body?.string()
+                    val jsonObject = JSONObject(responseData)
+
+                    if (jsonObject.getString("status") == "success") {
+                        // Success
+                        println(jsonObject)
+                    } else {
+                        // Failure
+                        throw IOException("Error: ${jsonObject.getString("error")}\n${jsonObject.getString("message")}")
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                // Handle failure
+                e.printStackTrace()
+            }
+        })
+    }
+    private fun showPostOptions(post: JSONObject, canChange: Boolean, translated: Boolean, isComment: Boolean, Itemview: View = itemView) {
+        val bottomSheetDialog = BottomSheetDialog(context)
+
+
+        val view = LayoutInflater.from(context).inflate(R.layout.bottom_sheet_post_options, null)
+
+        val editPost = view.findViewById<TextView>(R.id.editPost)
+        val deletePost = view.findViewById<TextView>(R.id.deletePost)
+        val sharePost = view.findViewById<TextView>(R.id.sharePost)
+        val reportPost = view.findViewById<TextView>(R.id.reportPost)
+        val translatePost = view.findViewById<TextView>(R.id.translatePost)
+
+        if (translated) {
+            translatePost.text = context.getString(R.string.see_original)
+        } else {
+            translatePost.text = context.getString(R.string.translate)
+        }
+
+        if (!canChange) {
+            editPost.visibility = View.GONE
+            deletePost.visibility = View.GONE
+        }
+
+        // Add listener to detect when the sheet is opened
+        bottomSheetDialog.setOnShowListener {
+            Itemview.animate()
+                .scaleX(1.04f)
+                .scaleY(1.04f)
+                .setDuration(250)
+                .setInterpolator(OvershootInterpolator())
+                .start()
+        }
+
+        // Add listener to detect when the sheet is dismissed
+        bottomSheetDialog.setOnDismissListener {
+            Itemview.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(250)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+
+        // Set click listeners
+        editPost.setOnClickListener {
+            bottomSheetDialog.dismiss()
+        }
+
+        deletePost.setOnClickListener {
+            deletePost(post.optInt("id"), itemView, isComment)
+            bottomSheetDialog.dismiss()
+        }
+
+        sharePost.setOnClickListener {
+            sharePost(post.optInt("id"))
+            bottomSheetDialog.dismiss()
+        }
+
+        reportPost.setOnClickListener {
+            bottomSheetDialog.dismiss()
+        }
+
+        translatePost.setOnClickListener {
+            if (translated) {
+                // seeOriginalPost(post.optString("message"), post, canChange)
+            } else {
+                // translatePostAsOption(post.optString("message"), post, canChange)
+            }
+            bottomSheetDialog.dismiss()
+        }
+
+        bottomSheetDialog.setContentView(view)
+        bottomSheetDialog.window?.setDimAmount(0.0f) // Adjust opacity (0.0 = no dim, 1.0 = full black)
+
+        bottomSheetDialog.show()
+    }
+
+    private fun sharePost(postId: Int) {
+        val shareText = "Polled\nLook at this cool post I found on Polled, https://polled.wokki20.nl/?post=$postId"
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            type = "text/plain"
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share post via"))
+    }
+
+    private fun deletePost(postId: Int, itemView: View, isComment: Boolean) {
+        val client = OkHttpClient()
+
+        // Prepare the form data
+        val formData = FormBody.Builder()
+            .add("id", postId.toString())
+            .build()
+
+        // Create the request
+        val request = Request.Builder()
+            .url("https://wokki20.nl/polled/api/v1/timeline")
+            .delete(formData)
+            .addHeader("Authorization", "Bearer $accessToken")
+            .build()
+
+        // Execute the request asynchronously
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Handle failure
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val responseData = response.body?.string()
+                    val jsonResponse = JSONObject(responseData ?: "{}")
+
+                    if (jsonResponse.optString("status") == "success") {
+                        println("Post deleted successfully: $jsonResponse")
+
+                        itemView.post {
+
+                            // If not a comment, navigate back
+                            if (!isComment) {
+                                (itemView.context as? Activity)?.finish()
+                            } else {
+                                val commentsList = (itemView.context as? Activity)?.findViewById<LinearLayout>(R.id.commentsContainer)
+                                println("commentsList: $commentsList")
+
+                                if (commentsList == null) {
+                                    println("Error: commentsContainer is null")
+                                    return@post
+                                }
+                                // find the correct comment and remove it
+                                val commentToRemove = commentsList.findViewWithTag<ConstraintLayout>(postId)
+                                if (commentToRemove != null) {
+                                    commentsList.removeView(commentToRemove)
+                                } else {
+                                    println("Comment not found, postId: $postId, commentsList: $commentsList")
+                                }
+                            }
+                        }
+                    } else {
+                        val error = jsonResponse.optString("error")
+                        val message = jsonResponse.optString("message")
+                        throw IOException("Error: $error\n$message")
+                    }
+                } else {
+                    println("Request failed with code: ${response.code}")
+                }
+            }
+        })
+    }
 
     private fun addComment(message: String, id: Int, parentID: Int) {
         // Use coroutines to perform the network request on a background thread
@@ -406,7 +684,6 @@ class FullPostActivity : AppCompatActivity() {
 
 
                         }
-
 
 
                         val edited = timelineItem.optInt("edited") == 1
@@ -669,6 +946,9 @@ class FullPostActivity : AppCompatActivity() {
 
             commentTextView.text = commentMessage
 
+            // set tag
+            commentView.tag = commentObject.optInt("id")
+
             translateMessageInFullPost(commentMessage) { translatedText ->
                 // Set the translated text to the messageText TextView
                 markwon.setMarkdown(commentTextView, translatedText)
@@ -693,6 +973,18 @@ class FullPostActivity : AppCompatActivity() {
                     replyInput.setHint(getString(R.string.reply_hint))
                 }
             }
+
+            commentTextView.setOnLongClickListener {
+                showPostOptions(commentObject, commentObject.optBoolean("can_change"), translated, true, commentView)
+                true
+            }
+
+            commentView.setOnLongClickListener {
+                showPostOptions(commentObject, commentObject.optBoolean("can_change"), translated, true, commentView)
+                true
+            }
+
+
 
             // Load profile picture using Glide
             val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/${commentObject.optString("maker_url")}/${commentObject.optString("maker_image")}"

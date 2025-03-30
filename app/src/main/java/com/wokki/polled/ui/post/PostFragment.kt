@@ -13,6 +13,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
@@ -86,6 +88,35 @@ class PostFragment : Fragment() {
         val addPollOptionButton = binding.addPollOptionButton
         val messageInput = binding.messageInput
         val postButton = binding.postButton
+        val postVisibilityDropdown = binding.postVisibility
+
+        val visibilityOptions = arrayOf("Public", "Private", "Followers Only", "Friends Only", "Unlisted")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, visibilityOptions)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        postVisibilityDropdown.adapter = adapter
+
+        var visibilityOption = "public"
+// Set a listener to update visibilityOption when an item is selected
+        postVisibilityDropdown.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val visibilityOptionDropdown = when (position) {
+                    0 -> "public"
+                    1 -> "private"
+                    2 -> "followers"
+                    3 -> "friends"
+                    4 -> "unlisted"
+                    else -> "public" // Default value
+                }
+                visibilityOption = visibilityOptionDropdown
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                val visibilityOptionDropdown = "public"
+                visibilityOption = visibilityOptionDropdown
+            }
+
+        }
+
 
         var optionsAdded = false
 
@@ -133,7 +164,7 @@ class PostFragment : Fragment() {
                 val multipleChoice = if (pollOptions.size > 1) 1 else 0 // If more than one option, multiple choice is allowed
 
                 // If there is no poll, pass null or empty data for poll-related values
-                createPost(message, pollQuestion, pollOptions, multipleChoice)
+                createPost(message, pollQuestion, pollOptions, multipleChoice, visibilityOption)
 
             } else {
                 messageInput.error = getString(R.string.message_error)
@@ -236,12 +267,12 @@ class PostFragment : Fragment() {
     }
 
     // Call this from an activity or fragment with CoroutineScope
-    fun createPost(message: String, pollQuestion: String? = null, pollOptions: List<String> = emptyList(), multiple: Int) {
+    fun createPost(message: String, pollQuestion: String? = null, pollOptions: List<String> = emptyList(), multiple: Int, visibility: String) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 // Call the background function to make the network request
                 val response = withContext(Dispatchers.IO) {
-                    sendPostRequest(message, pollQuestion, pollOptions, multiple)
+                    sendPostRequest(message, pollQuestion, pollOptions, multiple, visibility)
                 }
 
                 // Handle the response (success or failure)
@@ -277,7 +308,7 @@ class PostFragment : Fragment() {
         }
     }
 
-    fun sendPostRequest(message: String, pollQuestion: String?, pollOptions: List<String>, multiple: Int): String? {
+    fun sendPostRequest(message: String, pollQuestion: String?, pollOptions: List<String>, multiple: Int, visibility: String): String? {
         val url = URL("https://wokki20.nl/polled/api/v1/timeline")
         val connection = url.openConnection() as HttpURLConnection
 
@@ -291,7 +322,7 @@ class PostFragment : Fragment() {
             // Prepare form data
             val formData = StringBuilder()
             formData.append("message=${URLEncoder.encode(message, "UTF-8")}") // URL encode the message
-
+            formData.append("&visibility=$visibility")
             // Add poll data if provided
             if (!pollQuestion.isNullOrEmpty() && pollOptions.isNotEmpty()) {
                 formData.append(

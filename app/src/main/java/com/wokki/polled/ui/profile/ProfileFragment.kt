@@ -27,6 +27,7 @@ import com.wokki.polled.FullPostActivity
 import com.wokki.polled.LoginActivity
 import com.wokki.polled.R
 import com.wokki.polled.databinding.FragmentProfileBinding
+import io.noties.markwon.Markwon
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,6 +47,7 @@ class ProfileFragment : Fragment() {
     private var accessToken: String? = null
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
+    private var markwon: Markwon? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -56,6 +58,8 @@ class ProfileFragment : Fragment() {
         bannedUsernameTextView = binding.bannedUsername
         appealBanButton = binding.appealBanButton
         sharedPreferences = requireActivity().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+
+        markwon = Markwon.create(requireContext())
 
         // Initially hide the banned layout
         bannedLayout.visibility = View.GONE
@@ -91,7 +95,7 @@ class ProfileFragment : Fragment() {
 
         profileViewModel.bio.observe(viewLifecycleOwner) { bio ->
             // if bio is null, set it to something else
-            binding.bio.text = bio
+            markwon?.setMarkdown(binding.bio, bio)
             binding.bio.visibility = View.VISIBLE
         }
 

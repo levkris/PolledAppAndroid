@@ -200,19 +200,19 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 if (visibility == "private") {
                     visibilityText.text = context.getString(R.string.private_post)
                     // set the icon
-                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_private, 0, 0, 0)
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_private, 0)
                 } else if (visibility == "unlisted") {
                     visibilityText.text = context.getString(R.string.unlisted_post)
                     // set the icon
-                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_unlisted, 0, 0, 0)
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_unlisted, 0)
                 } else if (visibility == "followers") {
                     visibilityText.text = context.getString(R.string.followers_post)
                     // set the icon
-                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_followers, 0, 0, 0)
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_followers, 0)
                 } else if (visibility == "friends") {
                     visibilityText.text = context.getString(R.string.friends_post)
                     // set the icon
-                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_friends, 0, 0, 0)
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_friends, 0)
                 }
             }
 
@@ -348,7 +348,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             // Poll Handling
             val poll = timelineItem.optJSONObject("poll")
             if (poll != null) {
-                displayPoll(poll, false)  // Call displayPoll to handle the poll section
+                displayPoll(poll, autoTranslate)  // Call displayPoll to handle the poll section
             } else {
                 pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
             }
