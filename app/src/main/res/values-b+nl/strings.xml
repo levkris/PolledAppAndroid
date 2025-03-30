@@ -72,5 +72,10 @@
     <string name="rate_limit_exceeded">Post limiet behaald, je mag per minuut maar 1 bericht plaatsen</string>
     <string name="something_went_wrong">Er ging iets mis, probeer het opnieuw</string>
     <string name="commentReply">Reageer op %s</string>
+    <string name="private_post">Privé</string>
+    <string name="unlisted_post">Onzichtbaar</string>
+    <string name="followers_post">Alleen volgers</string>
+    <string name="friends_post">Alleen vrienden</string>
+    <string name="autoTranslatePosts">Vertaal berichten automatish</string>
 
 </resources>

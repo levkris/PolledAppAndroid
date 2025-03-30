@@ -55,7 +55,7 @@ class ProfileFragment : Fragment() {
         bannedReasonTextView = binding.bannedReason
         bannedUsernameTextView = binding.bannedUsername
         appealBanButton = binding.appealBanButton
-
+        sharedPreferences = requireActivity().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
         // Initially hide the banned layout
         bannedLayout.visibility = View.GONE
@@ -92,7 +92,10 @@ class ProfileFragment : Fragment() {
         profileViewModel.bio.observe(viewLifecycleOwner) { bio ->
             // if bio is null, set it to something else
             binding.bio.text = bio
+            binding.bio.visibility = View.VISIBLE
         }
+
+
 
         profileViewModel.followersCount.observe(viewLifecycleOwner) { followers ->
             profileViewModel.followingCount.observe(viewLifecycleOwner) { following ->
@@ -127,6 +130,7 @@ class ProfileFragment : Fragment() {
 
                     // Set the text to the TextView
                     binding.accountInfo.text = spannableString
+
                 }
             }
         }
@@ -179,7 +183,7 @@ class ProfileFragment : Fragment() {
     }
 
     fun showAboutSection() {
-        binding.logoutButton.visibility = View.GONE
+        binding.settingsContainer.visibility = View.GONE
         binding.bio.visibility = View.VISIBLE
         binding.posts.visibility = View.GONE
 
@@ -188,7 +192,7 @@ class ProfileFragment : Fragment() {
 
     fun showActivitySection(posts: List<Post>?) {
         // Hide logout button and bio
-        binding.logoutButton.visibility = View.GONE
+        binding.settingsContainer.visibility = View.GONE
         binding.bio.visibility = View.GONE
 
         // Show posts section
@@ -218,8 +222,6 @@ class ProfileFragment : Fragment() {
             }
             // Set post content
             postMessage.text = strippedPostMessageText
-
-            sharedPreferences = this.requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
             accessToken = sharedPreferences.getString("access_token", null)
 
             val postId = post.id
@@ -286,9 +288,25 @@ class ProfileFragment : Fragment() {
     }
 
     fun showSettingsSection() {
-        binding.logoutButton.visibility = View.VISIBLE
+        // Ensure the sharedPreferences is initialized before using it
+        if (!::sharedPreferences.isInitialized) {
+            sharedPreferences = requireActivity().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        }
+
+        // Hide and show views as needed
+        binding.settingsContainer.visibility = View.VISIBLE
         binding.bio.visibility = View.GONE
         binding.posts.visibility = View.GONE
+
+        // Set the auto-translate checkbox based on shared preferences
+        binding.autoTranslatePosts.isChecked = sharedPreferences.getBoolean("auto_translate", false)
+
+        // Listen for changes to the checkbox and save the value to SharedPreferences
+        binding.autoTranslatePosts.setOnCheckedChangeListener { _, isChecked ->
+            val editor = sharedPreferences.edit()
+            editor.putBoolean("auto_translate", isChecked)
+            editor.apply()
+        }
     }
 
     override fun onCreateView(

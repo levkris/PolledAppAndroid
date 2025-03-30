@@ -52,7 +52,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
     private val sharedPreferences = context.getSharedPreferences("user_prefs", MODE_PRIVATE)
     private val accessToken = sharedPreferences.getString("access_token", null)
-
+    private val autoTranslate = sharedPreferences.getBoolean("auto_translate", false)
 
 
     // DiffUtil callback for efficient updates
@@ -164,6 +164,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         private val pollOptionsContainer: LinearLayout = itemView.findViewById(R.id.pollOptionsContainer)  // LinearLayout for options
         private val likeButton: ImageButton = itemView.findViewById(R.id.like)
         private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
+        private val visibilityText = itemView.findViewById<TextView>(R.id.visibility)
 
         val markwon = Markwon.create(context)
 
@@ -189,6 +190,30 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 val intent = Intent(context, UserActivity::class.java)
                 intent.putExtra("userUrl", timelineItem.optString("maker_url"))
                 context.startActivity(intent)
+            }
+
+            val visibility = timelineItem.optString("visibility")
+            if (visibility == "public") {
+                visibilityText.visibility = View.GONE
+            } else {
+                visibilityText.visibility = View.VISIBLE
+                if (visibility == "private") {
+                    visibilityText.text = context.getString(R.string.private_post)
+                    // set the icon
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_private, 0, 0, 0)
+                } else if (visibility == "unlisted") {
+                    visibilityText.text = context.getString(R.string.unlisted_post)
+                    // set the icon
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_unlisted, 0, 0, 0)
+                } else if (visibility == "followers") {
+                    visibilityText.text = context.getString(R.string.followers_post)
+                    // set the icon
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_followers, 0, 0, 0)
+                } else if (visibility == "friends") {
+                    visibilityText.text = context.getString(R.string.friends_post)
+                    // set the icon
+                    visibilityText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_friends, 0, 0, 0)
+                }
             }
 
             var likes = timelineItem.optInt("likes")
@@ -239,15 +264,14 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Truncate the message and add "..."
                 val truncatedMessage = message.substring(0, 300) + "..."
 
+
                 markwon.setMarkdown(messageText, truncatedMessage)
 
-
-
-                // Set the truncated message
-                translateMessageInAdapter(truncatedMessage) { translatedText ->
-                    // Set the translated text to the messageText TextView
-                    messageText.text = translatedText
-                    translated = true
+                if (autoTranslate) {
+                    translateMessageInAdapter(truncatedMessage) { translatedText ->
+                        // Set the translated text to the messageText TextView
+                        markwon.setMarkdown(messageText, translatedText)
+                    }
                 }
 
                 // Add a "Read more" button dynamically
@@ -262,17 +286,23 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
                 // Set the listener for the "Read more" button
                 readMoreButton.setOnClickListener {
-                    // When the button is clicked, show the full message
-                    translateMessageInAdapter(message) { translatedText ->
-                        // Set the translated text to the messageText TextView
-                        markwon.setMarkdown(messageText, translatedText)
+                    markwon.setMarkdown(messageText, message)
+                    if (autoTranslate) {
+                        translateMessageInAdapter(message) { translatedText ->
+                            // Set the translated text to the messageText TextView
+                            markwon.setMarkdown(messageText, translatedText)
+                        }
                     }
 
-                    // Optionally, you can hide the "Read more" button after it's clicked
-                    // Or make the button text change to "Read less"
                     readMoreButton.text = context.getString(R.string.read_less)
                     readMoreButton.setOnClickListener {
                         markwon.setMarkdown(messageText, truncatedMessage)
+                        if (autoTranslate) {
+                            translateMessageInAdapter(truncatedMessage) { translatedText ->
+                                // Set the translated text to the messageText TextView
+                                markwon.setMarkdown(messageText, translatedText)
+                            }
+                        }
                         readMoreButton.text = context.getString(R.string.read_more)
                     }
 
@@ -285,10 +315,11 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             } else {
                 markwon.setMarkdown(messageText, message)
 
-                translateMessageInAdapter(message) { translatedText ->
-                    // Set the translated text to the messageText TextView
-                    markwon.setMarkdown(messageText, translatedText)
-                    translated = true
+                if (autoTranslate) {
+                    translateMessageInAdapter(message) { translatedText ->
+                        // Set the translated text to the messageText TextView
+                        markwon.setMarkdown(messageText, translatedText)
+                    }
                 }
 
             }
@@ -317,7 +348,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             // Poll Handling
             val poll = timelineItem.optJSONObject("poll")
             if (poll != null) {
-                displayPoll(poll, true)  // Call displayPoll to handle the poll section
+                displayPoll(poll, false)  // Call displayPoll to handle the poll section
             } else {
                 pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
             }
@@ -446,12 +477,14 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         }
 
         fun seeOriginalPost(message: String, timeLineItem: JSONObject, canChange: Boolean) {
+            markwon.setMarkdown(messageText, message)
+
             // Check if message is longer than 273 characters
             if (message.length > 273) {
                 // Truncate the message and add "..."
                 val truncatedMessage = message.substring(0, 300) + "..."
 
-                messageText.text = truncatedMessage
+                markwon.setMarkdown(messageText, truncatedMessage)
 
 
                 // Add a "Read more" button dynamically
@@ -467,14 +500,15 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Set the listener for the "Read more" button
                 readMoreButton.setOnClickListener {
                     // When the button is clicked, show the full message
-                    messageText.text = message
+
+                    markwon.setMarkdown(messageText, message)
 
 
                     // Optionally, you can hide the "Read more" button after it's clicked
                     // Or make the button text change to "Read less"
                     readMoreButton.text = context.getString(R.string.read_less)
                     readMoreButton.setOnClickListener {
-                        messageText.text = truncatedMessage
+                        markwon.setMarkdown(messageText, truncatedMessage)
                         readMoreButton.text = context.getString(R.string.read_more)
                     }
 
@@ -486,13 +520,18 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 buttonContainer.addView(readMoreButton)
             } else {
 
-                messageText.text = message
+                markwon.setMarkdown(messageText, message)
 
 
             }
 
 
             itemView.setOnLongClickListener {
+                showPostOptions(timeLineItem, canChange, false)
+                true // Return true to indicate the event is handled
+            }
+
+            messageText.setOnLongClickListener {
                 showPostOptions(timeLineItem, canChange, false)
                 true // Return true to indicate the event is handled
             }
@@ -513,11 +552,11 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 // Truncate the message and add "..."
                 val truncatedMessage = message.substring(0, 300) + "..."
 
-                messageText.text = truncatedMessage
+                markwon.setMarkdown(messageText, truncatedMessage)
                 // Set the truncated message
                 translateMessageInAdapter(truncatedMessage) { translatedText ->
                     // Set the translated text to the messageText TextView
-                    messageText.text = translatedText
+                    markwon.setMarkdown(messageText, translatedText)
                 }
 
                 // Add a "Read more" button dynamically
@@ -535,14 +574,17 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                     // When the button is clicked, show the full message
                     translateMessageInAdapter(message) { translatedText ->
                         // Set the translated text to the messageText TextView
-                        messageText.text = translatedText
+                        markwon.setMarkdown(messageText, translatedText)
                     }
 
                     // Optionally, you can hide the "Read more" button after it's clicked
                     // Or make the button text change to "Read less"
                     readMoreButton.text = context.getString(R.string.read_less)
                     readMoreButton.setOnClickListener {
-                        messageText.text = truncatedMessage
+                        translateMessageInAdapter(truncatedMessage) { translatedText ->
+                            // Set the translated text to the messageText TextView
+                            markwon.setMarkdown(messageText, translatedText)
+                        }
                         readMoreButton.text = context.getString(R.string.read_more)
                     }
 
@@ -553,15 +595,20 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                 buttonContainer.removeAllViews()
                 buttonContainer.addView(readMoreButton)
             } else {
-                messageText.text = message
+                markwon.setMarkdown(messageText, message)
                 translateMessageInAdapter(message) { translatedText ->
                     // Set the translated text to the messageText TextView
-                    messageText.text = translatedText
+                    markwon.setMarkdown(messageText, translatedText)
                 }
 
             }
 
             itemView.setOnLongClickListener {
+                showPostOptions(timeLineItem, canChange, true)
+                true // Return true to indicate the event is handled
+            }
+
+            messageText.setOnLongClickListener {
                 showPostOptions(timeLineItem, canChange, true)
                 true // Return true to indicate the event is handled
             }

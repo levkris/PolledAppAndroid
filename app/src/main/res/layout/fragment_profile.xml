@@ -113,25 +113,45 @@
             app:tabSelectedTextColor="@color/main"
             app:tabTextColor="@android:color/darker_gray" />
 
-        <!-- Logout Button -->
-        <Button
-            android:id="@+id/logout_button"
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/settings_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/logout"
-            android:textColor="@color/text_inverted"
+            android:layout_height="0dp"
             android:visibility="gone"
-            android:textAllCaps="false"
-            android:background="@drawable/button_background"
-            android:layout_marginLeft="20dp"
-            android:layout_marginTop="20dp"
-            android:layout_marginRight="20dp"
             android:layout_marginBottom="60dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/profile_tabs"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintVertical_bias="0.0">
+
+            <CheckBox
+                android:id="@+id/autoTranslatePosts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:text="@string/autoTranslatePosts"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- Logout Button -->
+            <Button
+                android:id="@+id/logout_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:background="@drawable/button_background"
+                android:text="@string/logout"
+                android:textAllCaps="false"
+                android:textColor="@color/text_inverted"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/autoTranslatePosts" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
 
         <!-- Bio Section -->
         <TextView
@@ -146,6 +166,7 @@
             android:padding="20dp"
             android:textColor="?android:textColorPrimary"
             android:textSize="15sp"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

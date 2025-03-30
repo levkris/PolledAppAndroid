@@ -521,6 +521,9 @@ class FullPostActivity : AppCompatActivity() {
         }
     }
 
+    
+
+
     private fun displayPoll(poll: JSONObject, translated: Boolean) {
         pollLayout.visibility = View.VISIBLE  // Show the poll layout
 

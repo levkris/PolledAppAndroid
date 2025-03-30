@@ -69,4 +69,9 @@
     <string name="rate_limit_exceeded">Rate limit exceeded, you can only post once per minute</string>
     <string name="something_went_wrong">Something went wrong, please try again</string>
     <string name="commentReply">Replying to %s</string>
+    <string name="private_post">Private</string>
+    <string name="unlisted_post">Unlisted</string>
+    <string name="followers_post">Followers only</string>
+    <string name="friends_post">Friends only</string>
+    <string name="autoTranslatePosts">Auto translate posts</string>
 </resources>

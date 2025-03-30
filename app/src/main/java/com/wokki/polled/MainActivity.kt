@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.text.Html
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
@@ -301,7 +300,7 @@ class MainActivity : AppCompatActivity() {
             .replace("`", "\uE004")  // Escape '`' (used for code blocks)
             .replace("\n", "\uE000") // Escape newline character
 
-        // Preserve mentions (@username) and apply bold formatting + color
+        // Preserve mentions (@username)
         val mentionRegex = "@[^\\s\\\\/:*?\"<>|]+".toRegex()
         val mentions = mutableMapOf<String, String>()
         var tempMessage = escapedMessage
@@ -309,7 +308,7 @@ class MainActivity : AppCompatActivity() {
 
         tempMessage = mentionRegex.replace(tempMessage) { matchResult ->
             val placeholder = "\uE100$index\uE101"
-            mentions[placeholder] = "**<font color='#FF6347'>${matchResult.value}</font>**"  // Apply bold and color (using a placeholder)
+            mentions[placeholder] = matchResult.value
             index++
             placeholder
         }
@@ -333,24 +332,13 @@ class MainActivity : AppCompatActivity() {
                             .replace("\uE004", "`")
                             .replace("\uE000", "\n")
 
-                        // Restore mentions (with bold and color)
+                        // Restore mentions
                         mentions.forEach { (placeholder, original) ->
                             formattedText = formattedText.replace(placeholder, original)
                         }
 
-                        // Here, we need to process the formatted text to interpret HTML tags
-                        try {
-                            // Parse HTML to apply color formatting
-                            val htmlFormattedText = Html.fromHtml(formattedText, Html.FROM_HTML_MODE_LEGACY).toString()
-
-                            Handler(Looper.getMainLooper()).post {
-                                onTranslated(htmlFormattedText)
-                            }
-                        } catch (e: Exception) {
-                            // If HTML processing fails, return the original message
-                            Handler(Looper.getMainLooper()).post {
-                                onTranslated(message)
-                            }
+                        Handler(Looper.getMainLooper()).post {
+                            onTranslated(formattedText)
                         }
                     }
                     .addOnFailureListener {
@@ -365,6 +353,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
     }
+
+
     private fun fetchNotifications() {
         CoroutineScope(Dispatchers.IO).launch {
             val client = OkHttpClient()
