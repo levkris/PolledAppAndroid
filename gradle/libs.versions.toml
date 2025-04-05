@@ -30,6 +30,7 @@ translate = "17.0.3"
 uiGeometryAndroid = "1.7.8"
 playServicesSafetynet = "18.1.0"
 protoliteWellKnownTypes = "18.0.1"
+uiAndroid = "1.7.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -71,6 +72,7 @@ syntax = { module = "io.noties.markwon:syntax", version.ref = "coreVersion" }
 syntax-highlight = { module = "io.noties.markwon:syntax-highlight", version.ref = "coreVersion" }
 syntax-highlighter = { module = "io.noties.markwon:syntax-highlighter", version.ref = "syntaxHighlighter" }
 translate = { module = "com.google.mlkit:translate", version.ref = "translate" }
+androidx-ui-android = { group = "androidx.compose.ui", name = "ui-android", version.ref = "uiAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

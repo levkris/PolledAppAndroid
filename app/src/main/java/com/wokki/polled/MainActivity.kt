@@ -1,6 +1,7 @@
 package com.wokki.polled
 
 import android.app.AlertDialog
+import android.app.Dialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -231,7 +232,6 @@ class MainActivity<File> : AppCompatActivity() {
         return packageInfo.versionCode
     }
 
-    // Show a dialog to notify the user about the update
     private suspend fun showUpdateDialog(versionInfo: VersionInfo) {
         // Switch to the main thread for UI operations
         withContext(Dispatchers.Main) {
@@ -246,15 +246,6 @@ class MainActivity<File> : AppCompatActivity() {
             layout.orientation = LinearLayout.VERTICAL
             layout.setPadding(32, 32, 32, 32)
 
-            // Create and add the ProgressBar to the layout
-            val progressBar = ProgressBar(context)
-            progressBar.isIndeterminate = false  // Set it to false to show progress
-            progressBar.max = 100  // Set maximum to 100 to represent the percentage
-            progressBar.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            layout.addView(progressBar)
 
             // Set the custom background for the dialog
             val customBackground: Drawable = ContextCompat.getDrawable(context, R.drawable.report_post_bg)!!
@@ -262,8 +253,9 @@ class MainActivity<File> : AppCompatActivity() {
 
             // Set positive and negative buttons (Download and Cancel)
             builder.setPositiveButton(getString(R.string.download)) { dialog, which ->
-                dialog.dismiss()
-                downloadAndInstallApk("https://polled.wokki20.nl/app/install", progressBar)
+
+
+                downloadAndInstallApk("https://polled.wokki20.nl/app/install")
             }
             builder.setNegativeButton(getString(R.string.cancel)) { dialog, which ->
                 dialog.dismiss()
@@ -281,8 +273,22 @@ class MainActivity<File> : AppCompatActivity() {
     }
 
 
-    // Method to download and install the APK
-    private fun downloadAndInstallApk(url: String, progressBar: ProgressBar) {
+
+    private fun downloadAndInstallApk(url: String) {
+        // Create a custom progress dialog with a ProgressBar
+        val progressDialog = Dialog(context).apply {
+            setContentView(R.layout.custom_progress_dialog) // Custom layout with ProgressBar
+            setCancelable(false) // Prevent canceling by tapping outside
+            show()
+        }
+
+        // Set up the progress bar in the custom dialog
+        val progressBar = progressDialog.findViewById<ProgressBar>(R.id.progressBar)
+        progressDialog.window?.setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.report_post_bg))
+
+        // Create a handler to update the progress on the main thread
+        val handler = Handler(Looper.getMainLooper())
+
         // Start a download in the background
         Thread {
             try {
@@ -291,7 +297,7 @@ class MainActivity<File> : AppCompatActivity() {
                 val connection = URL(url).openConnection() as HttpsURLConnection
                 connection.connect()
 
-                // Get the total length of the APK
+                // Get the total length of the APK file
                 val totalLength = connection.contentLength
 
                 // Get the input stream to read the APK from the URL
@@ -302,14 +308,21 @@ class MainActivity<File> : AppCompatActivity() {
                 val buffer = ByteArray(1024)
                 var bytesRead: Int
                 var totalRead = 0
+
+                // Loop to read from the input stream and write to the output file
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                     outputStream.write(buffer, 0, bytesRead)
                     totalRead += bytesRead
 
-                    // Update the progress bar
+                    // Update the progress on the main thread using the handler
                     val progress = (totalRead * 100 / totalLength)
-                    progressBar.progress = progress
+                    handler.post {
+                        // Update the progress bar in the dialog
+                        progressBar.progress = progress
+                    }
                 }
+
+                // After downloading, flush streams and close
                 outputStream.flush()
                 inputStream.close()
                 outputStream.close()
@@ -317,11 +330,22 @@ class MainActivity<File> : AppCompatActivity() {
                 // Now that the APK is downloaded, initiate installation
                 installApk(file)
 
+                // Dismiss the progress dialog once the download is complete
+                handler.post {
+                    progressDialog.dismiss()
+                }
+
             } catch (e: Exception) {
                 Log.e("DownloadError", "Error downloading APK: ${e.message}")
+
+                // Dismiss the progress dialog in case of an error
+                handler.post {
+                    progressDialog.dismiss()
+                }
             }
         }.start()
     }
+
 
 
 
