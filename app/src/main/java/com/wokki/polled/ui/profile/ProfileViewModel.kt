@@ -22,6 +22,9 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
     private val _profileData = MutableLiveData<String>()
     val profileData: LiveData<String> = _profileData
 
+    private val _profileUsername = MutableLiveData<String>()
+    val profileUsername: LiveData<String> = _profileUsername
+
     private val _imageUrl = MutableLiveData<String>()
     val imageUrl: LiveData<String> = _imageUrl
 
@@ -143,7 +146,7 @@ class ProfileViewModel(private val context: Context) : ViewModel() {
 
                                 _bannerUrl.postValue(bannerUrl)
                                 // Update LiveData with profile info and image URL
-                                _profileData.postValue(username)
+                                _profileUsername.postValue(username)
                                 _imageUrl.postValue(imageUrl)
                                 _verified.postValue(verified)
                                 _followersCount.postValue(followersCount)

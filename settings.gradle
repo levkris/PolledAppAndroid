@@ -9,6 +9,8 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        jcenter() // not always needed, but doesn't hurt
+        maven { url "https://jitpack.io" }  // <-- Add this line
     }
 }
 dependencyResolutionManagement {
@@ -16,6 +18,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        jcenter() // not always needed, but doesn't hurt
+        maven { url "https://jitpack.io" }  // <-- Add this line
     }
 }
 

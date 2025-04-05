@@ -2,7 +2,11 @@ package com.wokki.polled.ui.notifications
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -50,6 +54,28 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
     private lateinit var notificationsAdapter: NotificationsAdapter
     private val notificationsList = mutableListOf<Notification>()
 
+
+    fun isInternetAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val internetCheckRunnable = object : Runnable {
+        override fun run() {
+            if (!isInternetAvailable(requireContext())) {
+                binding.noInternetBanner.visibility = View.VISIBLE
+                binding.noInternetWarning.visibility = View.VISIBLE
+            } else {
+                binding.noInternetBanner.visibility = View.GONE
+                binding.noInternetWarning.visibility = View.GONE
+            }
+            handler.postDelayed(this, 3000) // Re-run every 3 seconds
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -61,8 +87,12 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
 
     }
 
+
+
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        handler.post(internetCheckRunnable)
 
         val navView = requireActivity().findViewById<BottomNavigationView>(R.id.nav_view)
 
@@ -162,5 +192,6 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null // Clean up the binding to avoid memory leaks
+        handler.removeCallbacks(internetCheckRunnable) // Stop checking when fragment is destroyed
     }
 }

@@ -277,7 +277,7 @@ class HomeFragment : Fragment() {
             lifecycleScope.launch {
                 if (refreshAccessToken != null) {
                     refreshAccessToken.refreshTokenIfNeeded()
-
+                    fetchData(true)
                 }
             }
 

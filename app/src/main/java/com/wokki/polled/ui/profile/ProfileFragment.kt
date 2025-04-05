@@ -4,8 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Typeface
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Html
 import android.text.SpannableString
 import android.text.Spanned
@@ -38,6 +42,27 @@ import java.net.URL
 
 class ProfileFragment : Fragment() {
 
+    fun isInternetAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val internetCheckRunnable = object : Runnable {
+        override fun run() {
+            if (!isInternetAvailable(requireContext())) {
+                binding.noInternetBanner.visibility = View.VISIBLE
+                binding.noInternetWarning.visibility = View.VISIBLE
+            } else {
+                binding.noInternetBanner.visibility = View.GONE
+                binding.noInternetWarning.visibility = View.GONE
+            }
+            handler.postDelayed(this, 3000) // Re-run every 3 seconds
+        }
+    }
+
     private lateinit var bannedLayout: LinearLayout
     private lateinit var bannedMessageTextView: TextView
     private lateinit var bannedReasonTextView: TextView
@@ -51,6 +76,9 @@ class ProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        handler.post(internetCheckRunnable)
+
 
         bannedLayout = binding.bannedLayout
         bannedMessageTextView = binding.bannedMessage
@@ -69,7 +97,7 @@ class ProfileFragment : Fragment() {
         val profileViewModel = ViewModelProvider(this, profileViewModelFactory).get(ProfileViewModel::class.java)
 
         // Observe profile data and image URL LiveData
-        profileViewModel.profileData.observe(viewLifecycleOwner) { username ->
+        profileViewModel.profileUsername.observe(viewLifecycleOwner) { username ->
             binding.username.text = username
         }
 
@@ -327,6 +355,8 @@ class ProfileFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        handler.removeCallbacks(internetCheckRunnable) // Stop checking when fragment is destroyed
+
     }
 
     fun showBannedPage(username: String, reason: String) {

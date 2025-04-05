@@ -77,5 +77,30 @@
     <string name="followers_post">Alleen volgers</string>
     <string name="friends_post">Alleen vrienden</string>
     <string name="autoTranslatePosts">Vertaal berichten automatish</string>
+    <string name="deleted_comment">Dit commentaar is verwijderd</string>
+    <string name="deleted_message">heeft dit bericht verwijderd</string>
+    <string name="follow_notification_title">%s volgt jou</string>
+    <string name="unfollow_notification_title">%s volgt je niet meer</string>
+    <string name="like_notification_title">Iemand vond jouw bericht leuk</string>
+    <string name="commented_notification_title">%s reageerde op jouw bericht</string>
+    <string name="mention_notification_title">%s noemde jou in een bericht</string>
+    <string name="voted_notification_title">%s stemde op jouw poll</string>
+    <string name="new_post_notification_title">Iemand die jij volgt heeft een nieuw bericht geplaatst</string>
+    <string name="follow_notification_message">Klik om naar het profiel van %s te gaan</string>
+    <string name="like_notification_message">%s vind jouw bericht leuk</string>
+    <string name="mention_notification_message">%s noemde jou in een bericht</string>
+    <string name="voted_notification_message">%s stemde op jouw poll</string>
+    <string name="posted_notification_message">"%s plaatste: </string>
+    <string name="report_sent">Rapport verzonden</string>
+    <string name="report_not_sent">Rapport niet verzonden</string>
+    <string name="report_sent_message">Uw rapport is naar de moderators gestuurd en wordt nu beoordeeld.</string>
+    <string name="report_sent_error">Er is een fout opgetreden bij het verzenden van uw rapport. Probeer het later opnieuw.</string>
+    <string name="report_post">Bericht melden</string>
+    <string name="report_post_message">Geef een reden op waarom u het bericht meldt:</string>
+    <string name="report_reason">Voer reden in…</string>
+    <string name="retry">Probeer opnieuw</string>
+    <string name="new_version_available">Nieuwe app-versie beschikbaar</string>
+    <string name="new_version_message">Er is een nieuwe app-versie beschikbaar (V%s).</string>
+    <string name="download">Downloaden en Installeren</string>
 
 </resources>

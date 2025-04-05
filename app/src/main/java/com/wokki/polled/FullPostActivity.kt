@@ -2,11 +2,13 @@ package com.wokki.polled
 
 import android.animation.ValueAnimator
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Html
 import android.text.SpannableString
@@ -29,17 +31,20 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import io.noties.markwon.Markwon
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.FormBody
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -409,6 +414,7 @@ class FullPostActivity : AppCompatActivity() {
         }
 
         reportPost.setOnClickListener {
+            reportPost(context, post.optInt("id"))
             bottomSheetDialog.dismiss()
         }
 
@@ -426,6 +432,129 @@ class FullPostActivity : AppCompatActivity() {
 
         bottomSheetDialog.show()
     }
+
+    fun reportPost(context: Context, id: Int) {
+        // Create a builder for the alert dialog
+        val builder = AlertDialog.Builder(context)
+
+        builder.setTitle(getString(R.string.report_post))
+        builder.setMessage(getString(R.string.report_post_message))
+
+        // Create a custom LinearLayout to hold the EditText
+        val layout = LinearLayout(context)
+        layout.orientation = LinearLayout.VERTICAL
+        layout.setPadding(32, 32, 32, 32)
+
+        // Create the EditText with a custom style
+        val input = EditText(context)
+        input.setBackgroundResource(R.drawable.report_input) // Custom background for the EditText
+        input.setPadding(16, 16, 16, 16)
+        input.setHint(getString(R.string.report_reason))
+        input.setHintTextColor(ContextCompat.getColor(context, android.R.color.darker_gray)) // Custom hint color
+        input.setTextSize(16f)
+
+        layout.addView(input)
+
+        // Set the custom background for the dialog
+        val customBackground: Drawable = ContextCompat.getDrawable(context, R.drawable.report_post_bg)!!
+        builder.setView(layout) // Add the custom layout to the dialog
+
+        // Set positive and negative buttons (Submit and Cancel)
+        builder.setPositiveButton("Submit") { dialog, which ->
+            val reason = input.text.toString()
+
+            if (reason.isNotEmpty()) {
+                sendReportRequest(id, reason)
+                dialog.dismiss()
+            } else {
+                // Handle the case where the reason is empty
+                println("Reason cannot be empty")
+            }
+        }
+
+        builder.setNegativeButton("Cancel") { dialog, which ->
+            dialog.dismiss() // Close the dialog when Cancel is pressed
+        }
+
+        // Creating the dialog
+        val dialog = builder.create()
+
+        // Apply the custom background to the dialog's window (optional)
+        dialog.window?.setBackgroundDrawable(customBackground)
+
+        // Show the dialog
+        dialog.show()
+    }
+
+    fun sendReportRequest(id: Int, reason: String) {
+        val client = OkHttpClient()
+
+        val formBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("message_id", id.toString())
+            .addFormDataPart("reason", reason)
+            .build()
+
+        val request = Request.Builder()
+            .url("https://wokki20.nl/polled/api/v1/report_post")
+            .post(formBody)
+            .addHeader("Authorization", "Bearer $accessToken")
+            .build()
+
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val responseData = response.body?.string()
+                    // Handle the response here
+                    println(responseData)
+                    showPopup(context, getString(R.string.report_sent),  getString(R.string.report_sent_message))
+                } else {
+                    println("Error: ${response.code}")
+                    showPopup(context, getString(R.string.report_not_sent), getString(R.string.report_sent_error))
+
+                }
+            } catch (e: IOException) {
+                println("Request failed: $e")
+            }
+        }
+    }
+
+    suspend fun showPopup(context: Context, title: String, message: String) {
+        // Switch to the main thread for UI operations
+        withContext(Dispatchers.Main) {
+            // Create a builder for the alert dialog
+            val builder = AlertDialog.Builder(context)
+
+            builder.setTitle(title)
+            builder.setMessage(message)
+
+            // Create a custom LinearLayout to hold the EditText
+            val layout = LinearLayout(context)
+            layout.orientation = LinearLayout.VERTICAL
+            layout.setPadding(32, 32, 32, 32)
+
+            // Set the custom background for the dialog
+            val customBackground: Drawable = ContextCompat.getDrawable(context, R.drawable.report_post_bg)!!
+            builder.setView(layout) // Add the custom layout to the dialog
+
+            // Set positive and negative buttons (Submit and Cancel)
+            builder.setPositiveButton("Okay") { dialog, which ->
+                dialog.dismiss()
+            }
+
+            // Creating the dialog
+            val dialog = builder.create()
+
+            // Apply the custom background to the dialog's window (optional)
+            dialog.window?.setBackgroundDrawable(customBackground)
+
+            // Show the dialog
+            dialog.show()
+        }
+    }
+
 
     private fun sharePost(postId: Int) {
         val shareText = "Polled\nLook at this cool post I found on Polled, https://polled.wokki20.nl/?post=$postId"
@@ -949,10 +1078,12 @@ class FullPostActivity : AppCompatActivity() {
             // set tag
             commentView.tag = commentObject.optInt("id")
 
-            translateMessageInFullPost(commentMessage) { translatedText ->
-                // Set the translated text to the messageText TextView
-                markwon.setMarkdown(commentTextView, translatedText)
-                translated = true
+            if (autoTranslate) {
+                translateMessageInFullPost(commentMessage) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    markwon.setMarkdown(commentTextView, translatedText)
+                    translated = true
+                }
             }
 
             // Set onClickListener for the commentView to set the reply context.
@@ -1130,7 +1261,7 @@ class FullPostActivity : AppCompatActivity() {
 
     private fun translateMessageInFullPost(message: String, callback: (String) -> Unit) {
 
-        val mainActivity = MainActivity()
+        val mainActivity = MainActivity<Any>()
 
         lifecycleScope.launch {
             mainActivity.translateMessage(message) { translatedText ->

@@ -55,8 +55,8 @@ class NotificationsAdapter(private val notifications: List<Notification>, privat
             val title = getCorrectTitle(notification.type, notification.by_user)
             val notificationTime = formatDate(notification.created_at)
 
-            val commentMessage = notification.comment_message?.replace("%20", " ") ?: "This message has been deleted"
-            val postMessage = notification.post_message?.replace("%20", " ") ?: "deleted this post"
+            val commentMessage = notification.comment_message?.replace("%20", " ") ?: context.getString(R.string.deleted_comment)
+            val postMessage = notification.post_message?.replace("%20", " ") ?: context.getString(R.string.deleted_message)
 
             val correctMessage = if (notification.type == "comment") {
                 commentMessage
@@ -222,19 +222,19 @@ class NotificationsAdapter(private val notifications: List<Notification>, privat
 
     fun getCorrectTitle(type: String, byUser: String): String {
         if (type == "follow") {
-            return "$byUser is now following you"
+            return context.getString(R.string.follow_notification_title, byUser)
         } else if (type == "unfollow") {
-            return "$byUser is no longer following you"
+            return context.getString(R.string.unfollow_notification_title, byUser)
         } else if (type == "like") {
-            return "Someone liked your post"
+            return context.getString(R.string.like_notification_title)
         } else if (type == "comment") {
-            return "$byUser commented on your post"
+            return context.getString(R.string.commented_notification_title, byUser)
         } else if (type == "mention") {
-            return "$byUser mentioned you in their post"
+            return context.getString(R.string.mention_notification_title, byUser)
         } else if (type == "vote") {
-            return "$byUser voted on your post"
+            return context.getString(R.string.voted_notification_title, byUser)
         } else if (type == "new_post") {
-            return "Someone you follow just posted a new post"
+            return context.getString(R.string.new_post_notification_title)
         }
         return ""
     }
@@ -242,25 +242,25 @@ class NotificationsAdapter(private val notifications: List<Notification>, privat
     fun getCorrectMessage(type: String, message: String?, byUser: String): String {
         return when (type) {
             "follow", "unfollow" -> {
-                "Click to go to the profile of $byUser."
+                context.getString(R.string.follow_notification_message, byUser)
             }
             "like" -> {
-                "$byUser liked your post."
+                context.getString(R.string.like_notification_message, byUser)
             }
             "comment" -> {
-                if (message == "This message has been deleted") message ?: "" else "\"$message\""
+                if (message == context.getString(R.string.deleted_comment)) message ?: "" else "\"$message\""
             }
             "mention" -> {
-                "$byUser mentioned you in a post."
+                context.getString(R.string.mention_notification_message, byUser)
             }
             "vote" -> {
-                "$byUser voted on your poll."
+                context.getString(R.string.voted_notification_message, byUser)
             }
             "new_post" -> {
-                if (message == "deleted this post") {
+                if (message == context.getString(R.string.deleted_message)) {
                     "$byUser $message"
                 } else {
-                    "$byUser posted: \"$message\""
+                    context.getString(R.string.posted_notification_message, byUser) + "\"$message\""
                 }
             }
             else -> message ?: ""

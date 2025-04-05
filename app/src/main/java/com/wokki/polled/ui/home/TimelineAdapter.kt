@@ -1,11 +1,13 @@
 package com.wokki.polled.ui.home
 
 import android.animation.ValueAnimator
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.text.Html
 import android.text.SpannableString
 import android.text.Spanned
@@ -18,11 +20,14 @@ import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getString
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -33,9 +38,14 @@ import com.wokki.polled.MainActivity
 import com.wokki.polled.R
 import com.wokki.polled.UserActivity
 import io.noties.markwon.Markwon
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.FormBody
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -153,6 +163,8 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         holder.bind(timelineItem)
     }
 
+
+
     inner class TimelineViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val profilePic: ImageView = itemView.findViewById(R.id.profilePic)
         private val userName: TextView = itemView.findViewById(R.id.userName)
@@ -166,13 +178,15 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
         private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
         private val visibilityText = itemView.findViewById<TextView>(R.id.visibility)
 
-        val markwon = Markwon.create(context)
+        val markwon = Markwon.builder(context).build()
 
         fun bind(timelineItem: JSONObject) {
 
             val canChange = timelineItem.optBoolean("can_change")
 
             var translated = false
+
+
 
             itemView.setOnClickListener {
                 val intent = Intent(context, FullPostActivity::class.java) // Use context passed to the adapter
@@ -458,6 +472,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             }
 
             reportPost.setOnClickListener {
+                reportPost(context, post.optInt("id"))
                 bottomSheetDialog.dismiss()
             }
 
@@ -474,6 +489,126 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             bottomSheetDialog.window?.setDimAmount(0.0f) // Adjust opacity (0.0 = no dim, 1.0 = full black)
 
             bottomSheetDialog.show()
+        }
+
+        fun reportPost(context: Context, id: Int) {
+            // Create a builder for the alert dialog
+            val builder = AlertDialog.Builder(context)
+
+            builder.setTitle(getString(context, R.string.report_post))
+            builder.setMessage(getString(context, R.string.report_post_message))
+
+            // Create a custom LinearLayout to hold the EditText
+            val layout = LinearLayout(context)
+            layout.orientation = LinearLayout.VERTICAL
+            layout.setPadding(32, 32, 32, 32)
+
+            // Create the EditText with a custom style
+            val input = EditText(context)
+            input.setBackgroundResource(R.drawable.report_input) // Custom background for the EditText
+            input.setPadding(16, 16, 16, 16)
+            input.setHint(getString(context, R.string.report_reason))
+            input.setHintTextColor(ContextCompat.getColor(context, android.R.color.darker_gray)) // Custom hint color
+            input.setTextSize(16f)
+
+            layout.addView(input)
+
+            // Set the custom background for the dialog
+            val customBackground: Drawable = ContextCompat.getDrawable(context, R.drawable.report_post_bg)!!
+            builder.setView(layout) // Add the custom layout to the dialog
+
+            // Set positive and negative buttons (Submit and Cancel)
+            builder.setPositiveButton("Submit") { dialog, which ->
+                val reason = input.text.toString()
+
+                if (reason.isNotEmpty()) {
+                    sendReportRequest(id, reason)
+                } else {
+                    // Handle the case where the reason is empty
+                    println("Reason cannot be empty")
+                }
+            }
+
+            builder.setNegativeButton("Cancel") { dialog, which ->
+                dialog.dismiss() // Close the dialog when Cancel is pressed
+            }
+
+            // Creating the dialog
+            val dialog = builder.create()
+
+            // Apply the custom background to the dialog's window (optional)
+            dialog.window?.setBackgroundDrawable(customBackground)
+
+            // Show the dialog
+            dialog.show()
+        }
+
+        fun sendReportRequest(id: Int, reason: String) {
+            val client = OkHttpClient()
+
+            val formBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("message_id", id.toString())
+                .addFormDataPart("reason", reason)
+                .build()
+
+            val request = Request.Builder()
+                .url("https://wokki20.nl/polled/api/v1/report_post")
+                .post(formBody)
+                .addHeader("Authorization", "Bearer $accessToken")
+                .build()
+
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    val response = client.newCall(request).execute()
+
+                    if (response.isSuccessful) {
+                        val responseData = response.body?.string()
+                        // Handle the response here
+                        showPopup(context, getString(context, R.string.report_sent),  getString(context, R.string.report_sent_message))
+                    } else {
+                        println("Error: ${response.code}")
+                        showPopup(context, getString(context, R.string.report_not_sent), getString(context, R.string.report_sent_error))
+
+                    }
+                } catch (e: IOException) {
+                    println("Request failed: $e")
+                }
+            }
+        }
+
+        suspend fun showPopup(context: Context, title: String, message: String) {
+            // Switch to the main thread for UI operations
+            withContext(Dispatchers.Main) {
+                // Create a builder for the alert dialog
+                val builder = AlertDialog.Builder(context)
+
+                builder.setTitle(title)
+                builder.setMessage(message)
+
+                // Create a custom LinearLayout to hold the EditText
+                val layout = LinearLayout(context)
+                layout.orientation = LinearLayout.VERTICAL
+                layout.setPadding(32, 32, 32, 32)
+
+                // Set the custom background for the dialog
+                val customBackground: Drawable = ContextCompat.getDrawable(context, R.drawable.report_post_bg)!!
+                builder.setView(layout) // Add the custom layout to the dialog
+
+                // Set positive and negative buttons (Submit and Cancel)
+                builder.setPositiveButton("Okay") { dialog, which ->
+                    dialog.dismiss()
+                }
+
+                // Creating the dialog
+                val dialog = builder.create()
+
+                // Apply the custom background to the dialog's window (optional)
+                dialog.window?.setBackgroundDrawable(customBackground)
+
+                // Show the dialog
+                dialog.show()
+            }
         }
 
         fun seeOriginalPost(message: String, timeLineItem: JSONObject, canChange: Boolean) {
@@ -911,7 +1046,7 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
 
 
         private fun translateMessageInAdapter(message: String, callback: (String) -> Unit) {
-            if (context is MainActivity) {
+            if (context is MainActivity<*>) {
                 context.translateMessage(message) { translatedText ->
                     callback(translatedText)  // Return the translated text via the callback
                 }
