@@ -4,7 +4,7 @@
     <color name="main">#007BFF</color>
     <color name="main_hover">#0056b3</color>
     <color name="background">#fff</color>
-    <color name="post_background">#f8fafd</color>
+    <color name="post_background">#f0f4f9</color>
     <color name="text">#000</color>
     <color name="text_inverted">#fff</color>
     <color name="text_secondary">#666</color>
