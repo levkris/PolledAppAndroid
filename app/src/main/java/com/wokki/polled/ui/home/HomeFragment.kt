@@ -1,5 +1,6 @@
 package com.wokki.polled.ui.home
 
+import android.app.Activity
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
@@ -19,6 +20,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -74,6 +77,7 @@ class HomeFragment : Fragment() {
     private lateinit var bannedReasonTextView: TextView
     private lateinit var bannedUsernameTextView: TextView
     private lateinit var appealBanButton: Button
+    private lateinit var resultLauncher: ActivityResultLauncher<Intent>
 
 
     override fun onCreateView(
@@ -142,7 +146,10 @@ class HomeFragment : Fragment() {
                     val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                     val lastKnownPosition = layoutManager.findFirstVisibleItemPosition()
 
-                    val timelineAdapter = TimelineAdapter(requireContext()) // pass parentFragmentManager here
+
+
+
+                    val timelineAdapter = TimelineAdapter(requireContext(), resultLauncher) // pass parentFragmentManager here
 
                     val timelineData: List<JSONObject> = timeline
 
@@ -181,6 +188,7 @@ class HomeFragment : Fragment() {
         return root
     }
 
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -195,6 +203,17 @@ class HomeFragment : Fragment() {
         timelineRecyclerView?.let {
             it.visibility = View.VISIBLE
         }
+
+        // Initialize the result launcher
+        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val shouldRefresh = result.data?.getBooleanExtra("refresh_needed", false) ?: false
+                if (shouldRefresh) {
+                    fetchData(true)  // Refresh your data here
+                }
+            }
+        }
+
 
         // Initially hide the banned layout
         bannedLayout?.visibility = View.GONE

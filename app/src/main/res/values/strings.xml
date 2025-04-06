@@ -99,4 +99,6 @@
     <string name="new_version_available">New app version availible</string>
     <string name="new_version_message">There is a new app version availible(V%s).</string>
     <string name="download">Download and Install</string>
+    <string name="checkUpdates">Check for updates</string>
+    <string name="no_update_available">No update availible</string>
 </resources>

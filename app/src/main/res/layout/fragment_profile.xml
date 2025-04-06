@@ -118,8 +118,8 @@
             android:id="@+id/settings_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:visibility="gone"
             android:layout_marginBottom="60dp"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -136,19 +136,36 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <!-- Check Updates Button -->
+            <Button
+                android:id="@+id/checkUpdate_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:background="@drawable/button_background"
+                android:text="@string/checkUpdates"
+                android:textAllCaps="false"
+                android:textColor="@color/text_inverted"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:backgroundTint="@null"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/autoTranslatePosts" />
+
+
             <!-- Logout Button -->
             <Button
                 android:id="@+id/logout_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="20dp"
-                android:background="@drawable/button_background"
+                android:background="@drawable/button_background_secondary"
                 android:text="@string/logout"
                 android:textAllCaps="false"
-                android:textColor="@color/text_inverted"
+                android:textColor="?android:attr/textColor"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:backgroundTint="@null"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/autoTranslatePosts" />
+                app:layout_constraintTop_toBottomOf="@+id/checkUpdate_button" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

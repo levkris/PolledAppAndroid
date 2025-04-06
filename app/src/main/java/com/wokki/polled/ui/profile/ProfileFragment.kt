@@ -1,13 +1,20 @@
 package com.wokki.polled.ui.profile
 
+import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.text.Html
@@ -20,13 +27,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.google.android.material.tabs.TabLayout
+import com.google.gson.Gson
 import com.wokki.polled.FullPostActivity
 import com.wokki.polled.LoginActivity
 import com.wokki.polled.R
@@ -36,11 +47,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import org.json.JSONObject
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 
 class ProfileFragment : Fragment() {
+    private val client = OkHttpClient()
 
     fun isInternetAvailable(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -330,6 +349,10 @@ class ProfileFragment : Fragment() {
         binding.bio.visibility = View.GONE
         binding.posts.visibility = View.GONE
 
+        binding.checkUpdateButton.setOnClickListener {
+            checkForNewVersion()
+        }
+
         // Set the auto-translate checkbox based on shared preferences
         binding.autoTranslatePosts.isChecked = sharedPreferences.getBoolean("auto_translate", false)
 
@@ -406,4 +429,221 @@ class ProfileFragment : Fragment() {
         startActivity(intent)
         activity?.finish()  // Finish the current activity
     }
+
+
+    private fun checkForNewVersion() {
+        // Use a coroutine to run the network request on a background thread
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Make the request to get the version info
+                val response = fetchVersionInfo()
+
+                if (response != null) {
+                    // Parse the JSON response
+                    val versionInfo = Gson().fromJson(response, VersionInfo::class.java)
+
+                    // Get the current app version
+                    val currentVersionCode = getAppVersionCode()
+
+                    // Compare the versionCode and versionName
+                    if (versionInfo.versionCode > currentVersionCode) {
+                        // Notify user of the new version
+                        withContext(Dispatchers.Main) {
+                            showUpdateDialog(versionInfo)
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, getString(R.string.no_update_available), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Handle error, such as network issues
+            }
+        }
+    }
+
+    // Function to fetch the version info from the server
+    private fun fetchVersionInfo(): String? {
+        val request = Request.Builder()
+            .url("https://polled.wokki20.nl/app/version.json")
+            .build()
+
+        return try {
+            val response: Response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                response.body?.string() // Return the JSON response as string
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // Function to get the app's current versionCode
+    private fun getAppVersionCode(): Int {
+        val packageManager: PackageManager = requireContext().packageManager
+        val packageInfo: PackageInfo = packageManager.getPackageInfo(requireContext().packageName, 0)
+        return packageInfo.versionCode
+    }
+
+    private suspend fun showUpdateDialog(versionInfo: VersionInfo) {
+        // Switch to the main thread for UI operations
+        withContext(Dispatchers.Main) {
+            // Create a builder for the alert dialog
+            val builder = AlertDialog.Builder(context)
+
+            builder.setTitle(getString(R.string.new_version_available))
+            builder.setMessage(getString(R.string.new_version_message, versionInfo.versionName))
+
+            // Create a custom LinearLayout to hold the ProgressBar
+            val layout = LinearLayout(context)
+            layout.orientation = LinearLayout.VERTICAL
+            layout.setPadding(32, 32, 32, 32)
+
+
+            // Set the custom background for the dialog
+            val customBackground: Drawable = ContextCompat.getDrawable(requireContext(), R.drawable.report_post_bg)!!
+            builder.setView(layout) // Add the custom layout to the dialog
+
+            // Set positive and negative buttons (Download and Cancel)
+            builder.setPositiveButton(getString(R.string.download)) { dialog, which ->
+
+
+                downloadAndInstallApk("https://polled.wokki20.nl/app/install")
+            }
+            builder.setNegativeButton(getString(R.string.cancel)) { dialog, which ->
+                dialog.dismiss()
+            }
+
+            // Creating the dialog
+            val dialog = builder.create()
+
+            // Apply the custom background to the dialog's window (optional)
+            dialog.window?.setBackgroundDrawable(customBackground)
+
+            // Show the dialog
+            dialog.show()
+        }
+    }
+
+
+
+    private fun downloadAndInstallApk(url: String) {
+        // Create a custom progress dialog with a ProgressBar
+        val progressDialog = Dialog(requireContext()).apply {
+            setContentView(R.layout.custom_progress_dialog) // Custom layout with ProgressBar
+            setCancelable(false) // Prevent canceling by tapping outside
+            show()
+        }
+
+        // Set up the progress bar in the custom dialog
+        val progressBar = progressDialog.findViewById<ProgressBar>(R.id.progressBar)
+        progressDialog.window?.setBackgroundDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.report_post_bg))
+
+        // Create a handler to update the progress on the main thread
+        val handler = Handler(Looper.getMainLooper())
+
+        // Start a download in the background
+        Thread {
+            try {
+                // Define the file path where the APK will be saved
+                val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "polled.apk")
+                val connection = URL(url).openConnection() as HttpsURLConnection
+                connection.connect()
+
+                // Get the total length of the APK file
+                val totalLength = connection.contentLength
+
+                // Get the input stream to read the APK from the URL
+                val inputStream: InputStream = connection.inputStream
+                val outputStream: OutputStream = file.outputStream()
+
+                // Buffer for download
+                val buffer = ByteArray(1024)
+                var bytesRead: Int
+                var totalRead = 0
+
+                // Loop to read from the input stream and write to the output file
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                    totalRead += bytesRead
+
+                    // Update the progress on the main thread using the handler
+                    val progress = (totalRead * 100 / totalLength)
+                    handler.post {
+                        // Update the progress bar in the dialog
+                        progressBar.progress = progress
+                    }
+                }
+
+                // After downloading, flush streams and close
+                outputStream.flush()
+                inputStream.close()
+                outputStream.close()
+
+                // Now that the APK is downloaded, initiate installation
+                installApk(file)
+
+                // Dismiss the progress dialog once the download is complete
+                handler.post {
+                    progressDialog.dismiss()
+                }
+
+            } catch (e: Exception) {
+                Log.e("DownloadError", "Error downloading APK: ${e.message}")
+
+                // Dismiss the progress dialog in case of an error
+                handler.post {
+                    progressDialog.dismiss()
+                }
+            }
+        }.start()
+    }
+
+
+
+
+    // Method to install the downloaded APK
+    private fun installApk(file: java.io.File) {
+        // Check if the file exists before trying to install it
+        if (file.exists()) {
+            val uri: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                // For API level 24 and higher, use FileProvider to share the file
+                FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    file
+                )
+            } else {
+                // For lower API levels, you can directly share the file
+                Uri.fromFile(file)
+            }
+
+            // Create an intent to install the APK
+            val intent = Intent(Intent.ACTION_VIEW)
+            intent.setDataAndType(uri, "application/vnd.android.package-archive")
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+            // Start the install activity
+            requireContext().startActivity(intent)
+        } else {
+            // Log an error if the file doesn't exist
+            Log.e("InstallError", "APK file not found at ${file.path}")
+        }
+    }
+
+
+    // Data class to parse the JSON
+    data class VersionInfo(
+        val versionCode: Int,
+        val versionName: String,
+        val AppName: String,
+        val URL: String,
+        val description: String,
+        val androidPackageName: String
+    )
 }

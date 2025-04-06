@@ -26,6 +26,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getString
 import androidx.recyclerview.widget.DiffUtil
@@ -58,7 +59,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, TimelineAdapter.TimelineViewHolder>(TimelineDiffCallback()) {
+class TimelineAdapter(private val context: Context, private val resultLauncher: ActivityResultLauncher<Intent>): ListAdapter<JSONObject, TimelineAdapter.TimelineViewHolder>(TimelineDiffCallback()) {
 
     private val sharedPreferences = context.getSharedPreferences("user_prefs", MODE_PRIVATE)
     private val accessToken = sharedPreferences.getString("access_token", null)
@@ -187,19 +188,6 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
             var translated = false
 
 
-
-            itemView.setOnClickListener {
-                val intent = Intent(context, FullPostActivity::class.java) // Use context passed to the adapter
-                intent.putExtra("POST_DATA", timelineItem.toString())
-                context.startActivity(intent)  // Start activity with context
-            }
-
-            messageText.setOnClickListener {
-                val intent = Intent(context, FullPostActivity::class.java) // Use context passed to the adapter
-                intent.putExtra("POST_DATA", timelineItem.toString())
-                context.startActivity(intent)  // Start activity with context
-            }
-
             userName.setOnClickListener {
                 val intent = Intent(context, UserActivity::class.java)
                 intent.putExtra("userUrl", timelineItem.optString("maker_url"))
@@ -248,14 +236,31 @@ class TimelineAdapter(private val context: Context): ListAdapter<JSONObject, Tim
                     liked = false
                     likeButton.setImageResource(R.drawable.like)
                     updateLike(messageId)
+                    timelineItem.put("liked", false)
+                    timelineItem.put("likes", likes)
                 } else {
                     likes++
                     likeCount.text = likes.toString()
                     liked = true
                     likeButton.setImageResource(R.drawable.liked)
                     updateLike(messageId)
+                    timelineItem.put("liked", true)
+                    timelineItem.put("likes", likes)
                 }
             }
+
+            itemView.setOnClickListener {
+                val intent = Intent(context, FullPostActivity::class.java) // Use context passed to the adapter
+                intent.putExtra("POST_DATA", timelineItem.toString())
+                resultLauncher.launch(intent)  // Launch the activity using resultLauncher
+            }
+
+            messageText.setOnClickListener {
+                val intent = Intent(context, FullPostActivity::class.java) // Use context passed to the adapter
+                intent.putExtra("POST_DATA", timelineItem.toString())
+                resultLauncher.launch(intent)  // Launch the activity using resultLauncher
+            }
+
 
             val profilePictureUrl = "https://wokki20.nl/polled/api/v1/users/" + timelineItem.optString("maker_url") + "/" + timelineItem.optString("maker_image")
 

@@ -102,5 +102,7 @@
     <string name="new_version_available">Nieuwe app-versie beschikbaar</string>
     <string name="new_version_message">Er is een nieuwe app-versie beschikbaar (V%s).</string>
     <string name="download">Downloaden en Installeren</string>
+    <string name="checkUpdates">Check voor updates</string>
+    <string name="no_update_available">Geen nieuwe updates beschikbaar</string>
 
 </resources>

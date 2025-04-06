@@ -87,6 +87,7 @@ class FullPostActivity : AppCompatActivity() {
     private lateinit var visibilityText: TextView
     private var autoTranslate: Boolean = false
     private lateinit var itemView: View
+    private lateinit var markwon: Markwon
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,8 +109,7 @@ class FullPostActivity : AppCompatActivity() {
         visibilityText = findViewById(R.id.visibility)
         likeButton = findViewById(R.id.like)
         likeCount = findViewById(R.id.likeCount)
-
-        val markwon = Markwon.create(this)
+        markwon = Markwon.create(this)
 
         supportActionBar?.hide()
 
@@ -134,8 +134,16 @@ class FullPostActivity : AppCompatActivity() {
         val id = timelineItem.optInt("id")
 
         backButton.setOnClickListener {
-            onBackPressed()
+            Log.d("FullPostActivity", "Sending result back")
+            val resultIntent = Intent().apply {
+                putExtra("refresh_needed", true)
+            }
+            setResult(Activity.RESULT_OK, resultIntent) // You still need to set the result for the system to handle it
+            finish() // Close the activity
         }
+
+
+
 
         // Username
         val name = timelineItem.optString("maker")
@@ -302,11 +310,11 @@ class FullPostActivity : AppCompatActivity() {
         }
 
         itemView.setOnLongClickListener {
-            showPostOptions(timelineItem, timelineItem.optBoolean("can_change"), translated, false)
+            showPostOptions(timelineItem, timelineItem.optBoolean("can_change"), translated, false, translateTextView = messageText)
             true
         }
         messageText.setOnLongClickListener {
-            showPostOptions(timelineItem, timelineItem.optBoolean("can_change"), translated, false)
+            showPostOptions(timelineItem, timelineItem.optBoolean("can_change"), translated, false, translateTextView = messageText)
             true
         }
     }
@@ -355,7 +363,7 @@ class FullPostActivity : AppCompatActivity() {
             }
         })
     }
-    private fun showPostOptions(post: JSONObject, canChange: Boolean, translated: Boolean, isComment: Boolean, Itemview: View = itemView) {
+    private fun showPostOptions(post: JSONObject, canChange: Boolean, translated: Boolean, isComment: Boolean, Itemview: View = itemView, translateTextView: TextView) {
         val bottomSheetDialog = BottomSheetDialog(context)
 
 
@@ -420,9 +428,9 @@ class FullPostActivity : AppCompatActivity() {
 
         translatePost.setOnClickListener {
             if (translated) {
-                // seeOriginalPost(post.optString("message"), post, canChange)
+                seeOriginalPost(translateTextView, post.optString("message"), post, canChange, isComment, Itemview)
             } else {
-                // translatePostAsOption(post.optString("message"), post, canChange)
+                translatePostAsOption(translateTextView, post.optString("message"), post, canChange, isComment, Itemview)
             }
             bottomSheetDialog.dismiss()
         }
@@ -431,6 +439,150 @@ class FullPostActivity : AppCompatActivity() {
         bottomSheetDialog.window?.setDimAmount(0.0f) // Adjust opacity (0.0 = no dim, 1.0 = full black)
 
         bottomSheetDialog.show()
+    }
+
+    fun seeOriginalPost(messageText: TextView, message: String, timeLineItem: JSONObject, canChange: Boolean, isComment: Boolean, itemView: View) {
+        markwon.setMarkdown(messageText, message)
+
+        // Check if message is longer than 273 characters
+        if (message.length > 273) {
+            // Truncate the message and add "..."
+            val truncatedMessage = message.substring(0, 300) + "..."
+
+            markwon.setMarkdown(messageText, truncatedMessage)
+
+
+            // Add a "Read more" button dynamically
+            val readMoreButton = Button(itemView.context)
+            readMoreButton.text = context.getString(R.string.read_more)
+
+            readMoreButton.setBackgroundColor(Color.TRANSPARENT);
+            readMoreButton.setTextColor(itemView.context.getColor(R.color.main))
+            readMoreButton.textSize = 14f
+            readMoreButton.setPadding(0, 0, 0, 0)
+            readMoreButton.setTypeface(readMoreButton.typeface, Typeface.BOLD)
+
+            // Set the listener for the "Read more" button
+            readMoreButton.setOnClickListener {
+                // When the button is clicked, show the full message
+
+                markwon.setMarkdown(messageText, message)
+
+
+                // Optionally, you can hide the "Read more" button after it's clicked
+                // Or make the button text change to "Read less"
+                readMoreButton.text = context.getString(R.string.read_less)
+                readMoreButton.setOnClickListener {
+                    markwon.setMarkdown(messageText, truncatedMessage)
+                    readMoreButton.text = context.getString(R.string.read_more)
+                }
+
+            }
+
+            // Add the "Read more" button to the layout (ensure it has space in your layout)
+            val buttonContainer = itemView.findViewById<LinearLayout>(R.id.buttonContainer)  // Make sure you have a container in your layout
+            buttonContainer.removeAllViews()
+            buttonContainer.addView(readMoreButton)
+        } else {
+
+            markwon.setMarkdown(messageText, message)
+
+
+        }
+
+
+        itemView.setOnLongClickListener {
+            showPostOptions(timeLineItem, canChange, false, isComment, itemView, messageText)
+            true // Return true to indicate the event is handled
+        }
+
+        messageText.setOnLongClickListener {
+            showPostOptions(timeLineItem, canChange, false, isComment, itemView, messageText)
+            true // Return true to indicate the event is handled
+        }
+
+        // Poll Handling
+        val poll = timeLineItem.optJSONObject("poll")
+        if (poll != null) {
+            displayPoll(poll, false)  // Call displayPoll to handle the poll section
+        } else {
+            pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
+        }
+
+    }
+
+    fun translatePostAsOption(messageText: TextView, message: String, timeLineItem: JSONObject, canChange: Boolean, isComment: Boolean, itemView: View) {
+        // Check if message is longer than 273 characters
+        if (message.length > 273) {
+            // Truncate the message and add "..."
+            val truncatedMessage = message.substring(0, 300) + "..."
+
+            markwon.setMarkdown(messageText, truncatedMessage)
+            // Set the truncated message
+            translateMessageInFullPost(truncatedMessage) { translatedText ->
+                // Set the translated text to the messageText TextView
+                markwon.setMarkdown(messageText, translatedText)
+            }
+
+            // Add a "Read more" button dynamically
+            val readMoreButton = Button(itemView.context)
+            readMoreButton.text = context.getString(R.string.read_more)
+
+            readMoreButton.setBackgroundColor(Color.TRANSPARENT);
+            readMoreButton.setTextColor(itemView.context.getColor(R.color.main))
+            readMoreButton.textSize = 14f
+            readMoreButton.setPadding(0, 0, 0, 0)
+            readMoreButton.setTypeface(readMoreButton.typeface, Typeface.BOLD)
+
+            // Set the listener for the "Read more" button
+            readMoreButton.setOnClickListener {
+                // When the button is clicked, show the full message
+                translateMessageInFullPost(message) { translatedText ->
+                    // Set the translated text to the messageText TextView
+                    markwon.setMarkdown(messageText, translatedText)
+                }
+
+                readMoreButton.text = context.getString(R.string.read_less)
+                readMoreButton.setOnClickListener {
+                    translateMessageInFullPost(truncatedMessage) { translatedText ->
+                        // Set the translated text to the messageText TextView
+                        markwon.setMarkdown(messageText, translatedText)
+                    }
+                    readMoreButton.text = context.getString(R.string.read_more)
+                }
+
+            }
+
+            // Add the "Read more" button to the layout (ensure it has space in your layout)
+            val buttonContainer = itemView.findViewById<LinearLayout>(R.id.buttonContainer)  // Make sure you have a container in your layout
+            buttonContainer.removeAllViews()
+            buttonContainer.addView(readMoreButton)
+        } else {
+            markwon.setMarkdown(messageText, message)
+            translateMessageInFullPost(message) { translatedText ->
+                // Set the translated text to the messageText TextView
+                markwon.setMarkdown(messageText, translatedText)
+            }
+
+        }
+
+        itemView.setOnLongClickListener {
+            showPostOptions(timeLineItem, canChange, true, isComment, itemView, messageText)
+            true // Return true to indicate the event is handled
+        }
+
+        messageText.setOnLongClickListener {
+            showPostOptions(timeLineItem, canChange, true, isComment, itemView, messageText)
+            true // Return true to indicate the event is handled
+        }
+
+        // Poll Handling
+        val poll = timeLineItem.optJSONObject("poll")
+        if (poll != null) {
+            displayPoll(poll, true)  // Call displayPoll to handle the poll section
+        } else {
+            pollLayout.visibility = View.GONE  // Hide poll section if no poll data exists
+        }
     }
 
     fun reportPost(context: Context, id: Int) {
@@ -1069,7 +1221,8 @@ class FullPostActivity : AppCompatActivity() {
             val commentDateText = commentView.findViewById<TextView>(R.id.commentDateText)
             val commentVerifiedIcon = commentView.findViewById<ImageView>(R.id.commentVerifiedIcon)
             val nestedCommentsContainer = commentView.findViewById<LinearLayout>(R.id.nestedCommentsContainer)
-
+            val likeButton = commentView.findViewById<ImageButton>(R.id.like)
+            val likeCount = commentView.findViewById<TextView>(R.id.likeCount)
             val markwon = Markwon.create(this)
             var translated = false
 
@@ -1106,13 +1259,40 @@ class FullPostActivity : AppCompatActivity() {
             }
 
             commentTextView.setOnLongClickListener {
-                showPostOptions(commentObject, commentObject.optBoolean("can_change"), translated, true, commentView)
+                showPostOptions(commentObject, commentObject.optBoolean("can_change"), translated, true, commentView, translateTextView = commentTextView)
                 true
             }
 
             commentView.setOnLongClickListener {
-                showPostOptions(commentObject, commentObject.optBoolean("can_change"), translated, true, commentView)
+                showPostOptions(commentObject, commentObject.optBoolean("can_change"), translated, true, commentView, translateTextView = commentTextView)
                 true
+            }
+
+            var likes = commentObject.optInt("likes")
+            var liked = commentObject.optBoolean("liked")
+            val messageId = commentObject.optInt("id")
+
+            if (liked) {
+                likeButton.setImageResource(R.drawable.liked)
+            } else {
+                likeButton.setImageResource(R.drawable.like)
+            }
+            likeCount.text = likes.toString()
+
+            likeButton.setOnClickListener {
+                if (liked) {
+                    likes--
+                    likeCount.text = likes.toString()
+                    liked = false
+                    likeButton.setImageResource(R.drawable.like)
+                    updateLike(messageId)
+                } else {
+                    likes++
+                    likeCount.text = likes.toString()
+                    liked = true
+                    likeButton.setImageResource(R.drawable.liked)
+                    updateLike(messageId)
+                }
             }
 
 
