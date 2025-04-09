@@ -105,6 +105,14 @@
                     android:lineSpacingExtra="4dp"
                     android:textSize="16sp" />
 
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    android:layout_marginTop="20dp"
+                    android:id="@+id/postImage"
+                    android:maxHeight="100dp" />
+
                 <LinearLayout
                     android:id="@+id/buttonContainer"
                     android:layout_width="wrap_content"

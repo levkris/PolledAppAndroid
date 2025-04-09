@@ -1,12 +1,18 @@
 package com.wokki.polled.ui.post
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -18,6 +24,10 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -28,15 +38,21 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.OutputStreamWriter
+import java.io.DataOutputStream
+import java.io.File
+import java.io.FileInputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
+import java.net.URLConnection
 
 class PostFragment : Fragment() {
     private lateinit var sharedPreferences: SharedPreferences
     private var accessToken: String? = null
-
+    private var imageUri: Uri? = null
+    // Constants for permissions and request codes
+    private val REQUEST_PERMISSION = 100
+    private val PICK_IMAGE_REQUEST = 101
+    private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
 
 
     fun isInternetAvailable(context: Context): Boolean {
@@ -89,6 +105,39 @@ class PostFragment : Fragment() {
         val messageInput = binding.messageInput
         val postButton = binding.postButton
         val postVisibilityDropdown = binding.postVisibility
+        val imageButton = binding.addImageButton
+
+        imagePickerLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val uri = result.data?.data
+                uri?.let {
+                    binding.addImageView.setImageURI(it)
+                    imageUri = it
+                }
+            }
+        }
+
+
+        imageButton.setOnClickListener {
+            if (ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                // Already granted, just open the image picker
+                openImagePicker()
+            } else {
+                // Ask for permission once
+                ActivityCompat.requestPermissions(
+                    requireActivity(),
+                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                    REQUEST_PERMISSION
+                )
+            }
+        }
+
 
         val visibilityOptions = arrayOf("Public", "Private", "Followers Only", "Friends Only", "Unlisted")
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, visibilityOptions)
@@ -164,12 +213,13 @@ class PostFragment : Fragment() {
                 val multipleChoice = if (pollOptions.size > 1) 1 else 0 // If more than one option, multiple choice is allowed
 
                 // If there is no poll, pass null or empty data for poll-related values
-                createPost(message, pollQuestion, pollOptions, multipleChoice, visibilityOption)
+                createPost(message, pollQuestion, pollOptions, multipleChoice, visibilityOption, imageUri)
 
             } else {
                 messageInput.error = getString(R.string.message_error)
             }
         }
+
 
 
         return root
@@ -215,6 +265,49 @@ class PostFragment : Fragment() {
             binding.pollOptionsContainer.addView(optionView)
         }
     }
+
+    // Function to open the image picker
+    private fun openImagePicker() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        intent.type = "image/*"
+        imagePickerLauncher.launch(intent)
+
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == REQUEST_PERMISSION &&
+            grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
+            // Permission granted now — open image picker
+            openImagePicker()
+        } else {
+            Toast.makeText(requireContext(), "Storage permission is required", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+
+    // Handle the result from image selection
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null) {
+            val imageUri = data.data // Get the URI of the selected image
+            if (imageUri != null) {
+                // You can display the image in an ImageView
+                binding.addImageView.setImageURI(imageUri)
+            }
+        }
+    }
+
+
 
     private fun isAnyPollOptionEmpty(): Boolean {
         // Iterate through all the options in the poll
@@ -266,26 +359,21 @@ class PostFragment : Fragment() {
         _binding = null
     }
 
-    // Call this from an activity or fragment with CoroutineScope
-    fun createPost(message: String, pollQuestion: String? = null, pollOptions: List<String> = emptyList(), multiple: Int, visibility: String) {
+    fun createPost(message: String, pollQuestion: String? = null, pollOptions: List<String> = emptyList(), multiple: Int, visibility: String, imageUri: Uri?) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 // Call the background function to make the network request
                 val response = withContext(Dispatchers.IO) {
-                    sendPostRequest(message, pollQuestion, pollOptions, multiple, visibility)
+                    sendPostRequest(message, pollQuestion, pollOptions, multiple, visibility, imageUri)
                 }
 
                 // Handle the response (success or failure)
                 if (response != null) {
                     if (response.contains("success") && response.contains("Post created successfully")) {
                         navigateToHomeFragment()
-
-
                     } else if (response.contains("error")) {
                         if (response.contains("Rate limit exceeded")) {
-
                             Toast.makeText(context, getString(R.string.rate_limit_exceeded), Toast.LENGTH_LONG).show()
-
                         } else if (response.contains("Invalid or expired access token")) {
                             val refreshAccessToken = context?.let { RefreshAccessToken(it) }
 
@@ -295,8 +383,6 @@ class PostFragment : Fragment() {
                                     Toast.makeText(context, getString(R.string.something_went_wrong), Toast.LENGTH_LONG).show()
                                 }
                             }
-
-
                         }
                     }
                 } else {
@@ -308,59 +394,111 @@ class PostFragment : Fragment() {
         }
     }
 
-    fun sendPostRequest(message: String, pollQuestion: String?, pollOptions: List<String>, multiple: Int, visibility: String): String? {
+
+    fun getRealPathFromURI(contentUri: Uri): String? {
+        val proj = arrayOf(MediaStore.Images.Media.DATA)
+        val cursor = context?.contentResolver?.query(contentUri, proj, null, null, null)
+        cursor?.moveToFirst()
+        val columnIndex = cursor?.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+        val filePath = cursor?.getString(columnIndex ?: 0)
+        cursor?.close()
+        return filePath
+    }
+
+
+    fun sendPostRequest(
+        message: String,
+        pollQuestion: String?,
+        pollOptions: List<String>,
+        multiple: Int,
+        visibility: String,
+        imageUri: Uri?
+    ): String? {
         val url = URL("https://wokki20.nl/polled/api/v1/timeline")
+        val boundary = "Boundary-${System.currentTimeMillis()}"
         val connection = url.openConnection() as HttpURLConnection
 
         return try {
-            // Set connection parameters
+            // Set connection parameters for multipart/form-data
             connection.requestMethod = "POST"
             connection.setRequestProperty("Authorization", "Bearer $accessToken")
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
             connection.doOutput = true
 
-            // Prepare form data
-            val formData = StringBuilder()
-            formData.append("message=${URLEncoder.encode(message, "UTF-8")}") // URL encode the message
-            formData.append("&visibility=$visibility")
-            // Add poll data if provided
-            if (!pollQuestion.isNullOrEmpty() && pollOptions.isNotEmpty()) {
-                formData.append(
-                    "&poll_question=${
-                        URLEncoder.encode(
-                            pollQuestion,
-                            "UTF-8"
-                        )
-                    }"
-                ) // URL encode the poll question
+            // Create an output stream to send data
+            val outputStream = DataOutputStream(connection.outputStream)
 
-                // Format poll options as a JSON array
-                val pollOptionsJson =
-                    URLEncoder.encode("[\"${pollOptions.joinToString("\",\"")}\"]", "UTF-8")
-                formData.append("&poll_options=$pollOptionsJson") // Poll options as JSON array
-                formData.append("&multiple=$multiple")
+            // Write the text data (message, poll options, etc.)
+            outputStream.writeBytes("--$boundary\r\n")
+            outputStream.writeBytes("Content-Disposition: form-data; name=\"message\"\r\n\r\n")
+            outputStream.writeBytes(message + "\r\n")
+
+            outputStream.writeBytes("--$boundary\r\n")
+            outputStream.writeBytes("Content-Disposition: form-data; name=\"visibility\"\r\n\r\n")
+            outputStream.writeBytes(visibility + "\r\n")
+
+            if (!pollQuestion.isNullOrEmpty() && pollOptions.isNotEmpty()) {
+                outputStream.writeBytes("--$boundary\r\n")
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"poll_question\"\r\n\r\n")
+                outputStream.writeBytes(pollQuestion + "\r\n")
+
+                outputStream.writeBytes("--$boundary\r\n")
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"poll_options\"\r\n\r\n")
+                outputStream.writeBytes("[\"${pollOptions.joinToString("\",\"")}\"]\r\n")
+
+                outputStream.writeBytes("--$boundary\r\n")
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"multiple\"\r\n\r\n")
+                outputStream.writeBytes(multiple.toString() + "\r\n")
             }
 
-            // Write the data to the output stream
-            val writer = OutputStreamWriter(connection.outputStream)
-            writer.write(formData.toString())
-            writer.flush()
+            // If an image is selected, upload it
+            imageUri?.let {
+                val filePath = getRealPathFromURI(it)
+                val file = File(filePath)
 
-            // Get the response
+
+                if (file.exists()) {
+                    val fileInputStream = FileInputStream(file)
+                    val fileName = file.name
+                    val fileType = URLConnection.guessContentTypeFromName(file.name)
+
+                    // Write the image part of the multipart form
+                    outputStream.writeBytes("--$boundary\r\n")
+                    outputStream.writeBytes("Content-Disposition: form-data; name=\"images[]\"; filename=\"$fileName\"\r\n")
+                    outputStream.writeBytes("Content-Type: $fileType\r\n\r\n")
+
+                    // Write the image bytes to the output stream
+                    fileInputStream.copyTo(outputStream)
+
+                    outputStream.writeBytes("\r\n")
+                    fileInputStream.close()
+                } else {
+                    Log.e("Image Upload", "File does not exist")
+                }
+            }
+
+            // End of the multipart data
+            outputStream.writeBytes("--$boundary--\r\n")
+            outputStream.flush()
+
+            // Get the response from the server
             val responseCode = connection.responseCode
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val inputStream = connection.inputStream
                 inputStream.bufferedReader().use { it.readText() }
             } else {
+                Log.e("Image Upload", "Failed to upload image. Response code: $responseCode")
                 null
             }
         } catch (e: Exception) {
-            e.printStackTrace()  // It's helpful to log the exception for debugging
+            e.printStackTrace()  // Log the exception for debugging
             null
         } finally {
             connection.disconnect()
         }
     }
+
+
 
 
 

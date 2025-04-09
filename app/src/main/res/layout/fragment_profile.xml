@@ -136,6 +136,16 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <CheckBox
+                android:id="@+id/autoUpdate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:text="@string/autoUpdate"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/autoTranslatePosts" />
+
             <!-- Check Updates Button -->
             <Button
                 android:id="@+id/checkUpdate_button"
@@ -149,7 +159,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:backgroundTint="@null"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/autoTranslatePosts" />
+                app:layout_constraintTop_toBottomOf="@+id/autoUpdate" />
 
 
             <!-- Logout Button -->

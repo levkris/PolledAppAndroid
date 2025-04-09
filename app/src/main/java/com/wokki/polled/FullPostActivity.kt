@@ -34,6 +34,8 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import io.noties.markwon.Markwon
 import kotlinx.coroutines.CoroutineScope
@@ -88,6 +90,7 @@ class FullPostActivity : AppCompatActivity() {
     private var autoTranslate: Boolean = false
     private lateinit var itemView: View
     private lateinit var markwon: Markwon
+    private lateinit var postImage: ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -110,6 +113,7 @@ class FullPostActivity : AppCompatActivity() {
         likeButton = findViewById(R.id.like)
         likeCount = findViewById(R.id.likeCount)
         markwon = Markwon.create(this)
+        postImage = findViewById(R.id.postImage)
 
         supportActionBar?.hide()
 
@@ -143,6 +147,28 @@ class FullPostActivity : AppCompatActivity() {
         }
 
 
+        // get the image if it exists from the assets object
+        val assets = timelineItem.optJSONObject("assets")
+        if (assets != null) {
+            val image = assets.optString("image")
+
+            // Load image into postImage with a little border radius
+            if (image !== null) {
+                val url = "https://wokki20.nl/polled/api/v1/$image"
+
+                postImage.visibility = View.VISIBLE
+
+                // Set a fixed width and height for the image to prevent it from being too large
+                Glide.with(itemView.context)
+                    .load(url)
+                    .centerCrop() // Center crop to fit the image nicely
+                    .apply(RequestOptions().transform(RoundedCorners(26))) // Adds border radius of 26px
+                    .override(500, 500) // Set a max size for the image (adjust as needed)
+                    .into(postImage)
+            } else {
+                postImage.visibility = View.GONE
+            }
+        }
 
 
         // Username

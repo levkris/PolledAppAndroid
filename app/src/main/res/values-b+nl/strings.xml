@@ -104,5 +104,7 @@
     <string name="download">Downloaden en Installeren</string>
     <string name="checkUpdates">Check voor updates</string>
     <string name="no_update_available">Geen nieuwe updates beschikbaar</string>
+    <string name="autoUpdate">Auto update app</string>
+    <string name="upload_image">Upload foto</string>
 
 </resources>

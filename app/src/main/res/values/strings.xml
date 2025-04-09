@@ -101,4 +101,6 @@
     <string name="download">Download and Install</string>
     <string name="checkUpdates">Check for updates</string>
     <string name="no_update_available">No update availible</string>
+    <string name="autoUpdate">Auto update app</string>
+    <string name="upload_image">Upload image</string>
 </resources>

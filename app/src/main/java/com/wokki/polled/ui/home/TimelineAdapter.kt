@@ -33,6 +33,8 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.wokki.polled.FullPostActivity
 import com.wokki.polled.MainActivity
@@ -178,6 +180,7 @@ class TimelineAdapter(private val context: Context, private val resultLauncher: 
         private val likeButton: ImageButton = itemView.findViewById(R.id.like)
         private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
         private val visibilityText = itemView.findViewById<TextView>(R.id.visibility)
+        private val postImage = itemView.findViewById<ImageView>(R.id.postImage)
 
         val markwon = Markwon.builder(context).build()
 
@@ -193,6 +196,35 @@ class TimelineAdapter(private val context: Context, private val resultLauncher: 
                 intent.putExtra("userUrl", timelineItem.optString("maker_url"))
                 context.startActivity(intent)
             }
+
+            // get the image if it exists from the assets object
+            val assets = timelineItem.optJSONObject("assets")
+            if (assets != null) {
+                val image = assets.optString("image")
+
+                // Load image into postImage with a little border radius
+                if (image !== null) {
+                    val url = "https://wokki20.nl/polled/api/v1/$image"
+
+                    postImage.visibility = View.VISIBLE
+
+                    // Set a fixed width and height for the image to prevent it from being too large
+                    Glide.with(itemView.context)
+                        .load(url)
+                        .centerCrop() // Center crop to fit the image nicely
+                        .apply(RequestOptions().transform(RoundedCorners(26))) // Adds border radius of 26px
+                        .override(500, 500) // Set a max size for the image (adjust as needed)
+                        .into(postImage)
+                } else {
+                    postImage.visibility = View.GONE
+                }
+            }
+
+
+
+
+
+
 
             val visibility = timelineItem.optString("visibility")
             if (visibility == "public") {

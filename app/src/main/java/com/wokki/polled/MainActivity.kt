@@ -65,6 +65,7 @@ class MainActivity<File> : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private val context = this
     private var accessToken: String? = null
+    private var autoUpdate: Boolean? = true
     private val handler = Handler(Looper.getMainLooper())
     var isAppOpen = false // Track if the app is in the foreground
 
@@ -118,6 +119,7 @@ class MainActivity<File> : AppCompatActivity() {
         }
         sharedPreferences = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
         accessToken = sharedPreferences.getString("access_token", null)
+        autoUpdate = sharedPreferences.getBoolean("auto_update", true)
 
         val refreshAccessToken = RefreshAccessToken(this)
 
@@ -161,7 +163,10 @@ class MainActivity<File> : AppCompatActivity() {
         // Start periodic notification fetch
         handler.post(notificationRunnable)
         // Check for newer version asynchronously
-        checkForNewVersion()
+
+        if (autoUpdate == true) {
+            checkForNewVersion()
+        }
     }
 
     private fun isInternetAvailable(): Boolean {

@@ -13,8 +13,8 @@ android {
         applicationId "com.wokki.polled"
         minSdk 29
         targetSdk 34
-        versionCode 3
-        versionName "0.7-beta"
+        versionCode 5
+        versionName "0.7.2-beta"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Make sure these are in the defaultConfig block
@@ -70,11 +70,11 @@ dependencies {
     implementation libs.okhttp
     implementation libs.glide
     annotationProcessor libs.compiler
-    implementation libs.androidx.lifecycle.viewmodel.ktx.v231  // Or a later version
-    implementation libs.androidx.lifecycle.livedata.ktx.v231   // Or a later version
+    implementation libs.androidx.lifecycle.viewmodel.ktx.v231
+    implementation libs.androidx.lifecycle.livedata.ktx.v231
     implementation libs.translate
     implementation libs.gson
-    implementation libs.kotlinx.coroutines.android // or latest version
+    implementation libs.kotlinx.coroutines.android
     implementation libs.material.v178
     implementation libs.core
 

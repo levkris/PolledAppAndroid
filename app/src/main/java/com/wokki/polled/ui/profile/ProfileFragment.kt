@@ -355,11 +355,18 @@ class ProfileFragment : Fragment() {
 
         // Set the auto-translate checkbox based on shared preferences
         binding.autoTranslatePosts.isChecked = sharedPreferences.getBoolean("auto_translate", false)
+        binding.autoUpdate.isChecked = sharedPreferences.getBoolean("auto_update", true)
 
         // Listen for changes to the checkbox and save the value to SharedPreferences
         binding.autoTranslatePosts.setOnCheckedChangeListener { _, isChecked ->
             val editor = sharedPreferences.edit()
             editor.putBoolean("auto_translate", isChecked)
+            editor.apply()
+        }
+
+        binding.autoUpdate.setOnCheckedChangeListener { _, isChecked ->
+            val editor = sharedPreferences.edit()
+            editor.putBoolean("auto_update", isChecked)
             editor.apply()
         }
     }
