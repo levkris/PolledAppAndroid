@@ -13,8 +13,8 @@ android {
         applicationId "com.wokki.polled"
         minSdk 29
         targetSdk 34
-        versionCode 5
-        versionName "0.7.2-beta"
+        versionCode 6
+        versionName "0.7.3-beta"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Make sure these are in the defaultConfig block

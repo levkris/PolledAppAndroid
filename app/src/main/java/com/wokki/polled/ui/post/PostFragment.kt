@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -26,7 +27,6 @@ import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -107,36 +107,67 @@ class PostFragment : Fragment() {
         val postVisibilityDropdown = binding.postVisibility
         val imageButton = binding.addImageButton
 
+        // Inside onCreateView or onCreate method
         imagePickerLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 val uri = result.data?.data
                 uri?.let {
+                    // Set the image URI to the ImageView
                     binding.addImageView.setImageURI(it)
                     imageUri = it
+
+                    // Extract the file name from the URI
+                    val fileName = getFileNameFromUri(it)
+
+                    // Set the button text to the file name
+                    imageButton.text = fileName ?: "No file selected"
+                }
+            }
+        }
+
+        val requestPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission granted, open the image picker
+                openImagePicker()
+            } else {
+                // Permission denied, show a message or handle accordingly
+                Toast.makeText(requireContext(), "Storage permission is required", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        imageButton.setOnClickListener {
+            when {
+                // For Android 13 and above
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                    if (ContextCompat.checkSelfPermission(
+                            requireContext(),
+                            Manifest.permission.READ_MEDIA_IMAGES
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        openImagePicker()
+                    } else {
+                        requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                    }
+                }
+                else -> {
+                    if (ContextCompat.checkSelfPermission(
+                            requireContext(),
+                            Manifest.permission.READ_EXTERNAL_STORAGE
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        openImagePicker()
+                    } else {
+                        requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }
                 }
             }
         }
 
 
-        imageButton.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                // Already granted, just open the image picker
-                openImagePicker()
-            } else {
-                // Ask for permission once
-                ActivityCompat.requestPermissions(
-                    requireActivity(),
-                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                    REQUEST_PERMISSION
-                )
-            }
-        }
 
 
         val visibilityOptions = arrayOf("Public", "Private", "Followers Only", "Friends Only", "Unlisted")
@@ -239,6 +270,30 @@ class PostFragment : Fragment() {
         return options
     }
 
+    // Function to extract the file name from the URI
+    fun getFileNameFromUri(uri: Uri): String? {
+        var fileName: String? = null
+        val cursor = requireContext().contentResolver.query(
+            uri,
+            arrayOf(MediaStore.Images.Media.DISPLAY_NAME),
+            null,
+            null,
+            null
+        )
+        cursor?.use {
+            val columnIndex = it.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME)
+            if (columnIndex != -1) {
+                if (it.moveToFirst()) {
+                    fileName = it.getString(columnIndex)
+                }
+            } else {
+                // Handle the case where the column does not exist
+                fileName = uri.lastPathSegment
+            }
+        }
+        return fileName
+    }
+
 
     private fun addNewPollOption(autoAdded: Boolean) {
         val optionView = LayoutInflater.from(requireContext()).inflate(R.layout.post_option, binding.pollOptionsContainer, false)
@@ -266,13 +321,13 @@ class PostFragment : Fragment() {
         }
     }
 
-    // Function to open the image picker
     private fun openImagePicker() {
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         intent.type = "image/*"
         imagePickerLauncher.launch(intent)
-
+        println("Image picker launched")
     }
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -285,12 +340,14 @@ class PostFragment : Fragment() {
             grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
-            // Permission granted now — open image picker
+            // Permission granted, open the image picker
             openImagePicker()
         } else {
+            // Permission denied, show a toast message
             Toast.makeText(requireContext(), "Storage permission is required", Toast.LENGTH_SHORT).show()
         }
     }
+
 
 
 

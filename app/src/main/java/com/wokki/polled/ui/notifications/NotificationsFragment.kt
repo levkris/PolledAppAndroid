@@ -123,7 +123,7 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
 
             // Create the request and add the Authorization header if the token is available
             val requestBuilder = Request.Builder()
-                .url("https://wokki20.nl/polled/api/v1/notifications")
+                .url("https://wokki20.nl/polled/api/v1/notifications?mode=fetch&read=true")
 
             if (accessToken != null) {
                 requestBuilder.addHeader("Authorization", "Bearer $accessToken")

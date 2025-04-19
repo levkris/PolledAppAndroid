@@ -77,7 +77,7 @@ class MainActivity<File> : AppCompatActivity() {
             if (hour !in 23..6) { // Skip from 23:00 to 06:59
                 if (isAppOpen) {
                     showNotificationsDot() // Run a different function when the app is open
-                    handler.postDelayed(this, 60000) // Re-run every 1 minute
+                    handler.postDelayed(this, 300000) // Re-run every 5 minutes
 
                 } else {
                     fetchNotifications()
@@ -415,7 +415,7 @@ class MainActivity<File> : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             val client = OkHttpClient()
-            val url = "https://wokki20.nl/polled/api/v1/notifications?read=false"
+            val url = "https://wokki20.nl/polled/api/v1/notifications?mode=check"
 
             // Build the request with Authorization header if token exists
             val request = Request.Builder()
@@ -446,28 +446,20 @@ class MainActivity<File> : AppCompatActivity() {
                         }
 
                         // If the notifications array is part of the response
-                        val notifications = jsonResponse.optJSONArray("notifications")
-                        if (notifications != null && notifications.length() > 0) {
-                            // Loop through notifications and send them
-                            withContext(Dispatchers.Main) {
+                        val unreadCount = jsonResponse.optInt("unread_count")
+                        // Loop through notifications and send them
+                        withContext(Dispatchers.Main) {
+                            binding.navView.getOrCreateBadge(R.id.navigation_notifications).apply {
+                                isVisible = false
+                                number = 0
+                            }
+
+                            if (unreadCount > 0) {
                                 binding.navView.getOrCreateBadge(R.id.navigation_notifications).apply {
-                                    isVisible = false
-                                    number = 0
+                                    isVisible = true
+                                    number = unreadCount
                                 }
 
-                                for (i in 0 until notifications.length()) {
-                                    val notification = notifications.getJSONObject(i)
-                                    if (notification.optInt("is_read") == 0) {
-                                        binding.navView.getOrCreateBadge(R.id.navigation_notifications).apply {
-                                            isVisible = true
-                                            number += 1 // Increment the current badge number
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            withContext(Dispatchers.Main) {
-                                println("No unread notifications.")
                             }
                         }
                     } else {
@@ -617,7 +609,7 @@ class MainActivity<File> : AppCompatActivity() {
     private fun fetchNotifications() {
         CoroutineScope(Dispatchers.IO).launch {
             val client = OkHttpClient()
-            val url = "https://wokki20.nl/polled/api/v1/notifications"
+            val url = "https://wokki20.nl/polled/api/v1/notifications?mode=fetch&read=true"
 
             // Build the request with Authorization header if token exists
             val request = Request.Builder()
@@ -794,7 +786,7 @@ class MainActivity<File> : AppCompatActivity() {
                 "$byUser liked your post."
             }
             "comment" -> {
-                if (message == "This message has been deleted") message ?: "" else "\"$message\""
+                if (message == null) message ?: "This message has been deleted" else "\"$message\""
             }
             "mention" -> {
                 "$byUser mentioned you in a post."
@@ -803,8 +795,8 @@ class MainActivity<File> : AppCompatActivity() {
                 "$byUser voted on your poll."
             }
             "new_post" -> {
-                if (message == "deleted this post") {
-                    "$byUser $message"
+                if (message == null) {
+                    "$byUser deleted their post."
                 } else {
                     "$byUser posted: \"$message\""
                 }
