@@ -23,7 +23,11 @@
         android:label="@string/title_post"
         tools:layout="@layout/fragment_post" />
 
-
+    <fragment
+        android:id="@+id/navigation_messages"
+        android:name="com.wokki.polled.ui.messages.MessagesFragment"
+        android:label="@string/title_messages"
+        tools:layout="@layout/fragment_messages" />
 
     <fragment
         android:id="@+id/navigation_profile"
