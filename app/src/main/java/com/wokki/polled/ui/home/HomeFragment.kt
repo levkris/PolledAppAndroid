@@ -87,7 +87,15 @@ class HomeFragment : Fragment() {
     ): View {
         homeViewModel = ViewModelProvider(this).get(HomeViewModel::class.java)
 
-
+        // Initialize the result launcher
+        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val shouldRefresh = result.data?.getBooleanExtra("refresh_needed", false) ?: false
+                if (shouldRefresh) {
+                    fetchData(true)  // Refresh your data here
+                }
+            }
+        }
 
         // Start internet check loop
         handler.post(internetCheckRunnable)
@@ -164,6 +172,8 @@ class HomeFragment : Fragment() {
                     val currentData = homeViewModel.timelineData.value ?: emptyList()
                     val timelineList = timeline
 
+                    println(currentData)
+
                     // Combine current data with new timeline data
                     val newData = currentData + timelineList
 
@@ -204,15 +214,7 @@ class HomeFragment : Fragment() {
             it.visibility = View.VISIBLE
         }
 
-        // Initialize the result launcher
-        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val shouldRefresh = result.data?.getBooleanExtra("refresh_needed", false) ?: false
-                if (shouldRefresh) {
-                    fetchData(true)  // Refresh your data here
-                }
-            }
-        }
+
 
 
         // Initially hide the banned layout
@@ -307,13 +309,7 @@ class HomeFragment : Fragment() {
         override fun onPostExecute(result: String) {
             super.onPostExecute(result)
             swipeRefreshLayout.isRefreshing = false // Stop refreshing animation
-            homeViewModel.setTimelineData(emptyList())
             loading = false // Reset loading flag
-
-            // Log the raw response
-            println("Raw response: $result")
-
-
 
             try {
                 val jsonResponse = JSONObject(result)
@@ -331,7 +327,6 @@ class HomeFragment : Fragment() {
                     }
                 }
 
-
                 // Existing logic for handling non-banned users
                 if (jsonResponse.has("error")) {
                     val errorMessage = jsonResponse.getString("error")
@@ -341,7 +336,6 @@ class HomeFragment : Fragment() {
                     if (errorMessage == "Invalid or expired access token" && !retried) {
                         retried = true
                         retryRequest()
-
                     }
                 } else {
                     // Try to parse the response as JSON
@@ -352,13 +346,10 @@ class HomeFragment : Fragment() {
                         // Handle the error if status is not success
                         throw Exception("Error: Unexpected status - $status")
                     } else {
-
                         if (message == "No posts available") {
-                            // Clear cached data
-                            homeViewModel.timelineData.value ?: emptyList()
-                            // Fetch new data from the API
-                            fetchDataFromApi()
+                            return // No more posts, do nothing
                         }
+
                         // Success, process the timeline
                         val timeline = jsonResponse.optJSONArray("timeline")
                         if (timeline != null && timeline.length() > 0) {
@@ -368,9 +359,11 @@ class HomeFragment : Fragment() {
                                 timelineList.add(timeline.getJSONObject(i))
                             }
 
-                            // Update ViewModel with the new data
+                            // Update ViewModel with the new data by appending it
                             val currentData = homeViewModel.timelineData.value ?: emptyList()
-                            homeViewModel.setTimelineData(currentData + timelineList) // Append new data
+                            val updatedData = currentData + timelineList // Append new data to existing list
+
+                            homeViewModel.setTimelineData(updatedData) // Update ViewModel with new data
                             offset += 10 // Increment offset for the next API call
                         } else {
                             println("No more posts to load.")
@@ -381,6 +374,7 @@ class HomeFragment : Fragment() {
                 println("Failed to parse JSON response: $e")
             }
         }
+
 
 
         private fun showBannedPage(username: String, reason: String) {

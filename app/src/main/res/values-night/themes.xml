@@ -12,8 +12,8 @@
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimary</item>
 
-        <item name="android:windowBackground">@color/background_dark</item>
-        <item name="android:navigationBarColor">@color/post_background_dark</item>
+        <item name="android:windowBackground">@drawable/background</item>
+        <item name="android:navigationBarColor">@color/post_background</item>
         <item name="android:textColorPrimary">@color/text_dark</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
 

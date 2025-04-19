@@ -48,6 +48,7 @@ class UserActivity : AppCompatActivity() {
     private lateinit var banner: ImageView
     private lateinit var accountInfo: TextView
     private lateinit var followButton: Button
+    private lateinit var header: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +74,8 @@ class UserActivity : AppCompatActivity() {
         backButton.setOnClickListener {
             onBackPressed()
         }
+
+
 
         val requestUserUrl = intent.getStringExtra("userUrl")
         val requestUserName = intent.getStringExtra("userName")

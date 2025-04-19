@@ -76,7 +76,7 @@
     <string name="unlisted_post">Onzichtbaar</string>
     <string name="followers_post">Alleen volgers</string>
     <string name="friends_post">Alleen vrienden</string>
-    <string name="autoTranslatePosts">Vertaal berichten automatish</string>
+    <string name="autoTranslatePosts">Automatische vertaling (bèta)</string>
     <string name="deleted_comment">Dit commentaar is verwijderd</string>
     <string name="deleted_message">heeft dit bericht verwijderd</string>
     <string name="follow_notification_title">%s volgt jou</string>
@@ -104,7 +104,19 @@
     <string name="download">Downloaden en Installeren</string>
     <string name="checkUpdates">Check voor updates</string>
     <string name="no_update_available">Geen nieuwe updates beschikbaar</string>
-    <string name="autoUpdate">Auto update app</string>
+    <string name="autoUpdate">Automatisch check voor updates</string>
     <string name="upload_image">Upload foto</string>
-
+    <string name="general">Algemeen:</string>
+    <string name="account">Account:</string>
+    <string name="appearance">Weergave:</string>
+    <string name="light_mode">Lichtmodus</string>
+    <string name="dark_mode">Donkere modus</string>
+    <string name="use_device_settings">Apparaatinstellingen gebruiken</string>
+    <string name="use_device_settings_msg"><![CDATA[Pas de weergave aan op de scherm- en helderheidsinstellingen van uw apparaat.]]></string>
+    <string name="notifications">Meldingen:</string>
+    <string name="autoUpdate_msg">Automatisch controleren op updates bij het openen van de app</string>
+    <string name="autoTranslate_msg">Berichten automatisch vertalen naar de taal van uw apparaat (bèta)</string>
+    <string name="sendNotifications">Meldingen verzenden</string>
+    <string name="sendNotifications_msg">Pushmeldingen naar je apparaat verzenden over volgers, reacties, likes, enz.</string>
+    <string name="app">App:</string>
 </resources>

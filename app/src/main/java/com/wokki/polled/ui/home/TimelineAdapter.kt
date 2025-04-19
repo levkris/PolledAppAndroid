@@ -37,6 +37,7 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.wokki.polled.FullPostActivity
+import com.wokki.polled.FullscreenImageActivity
 import com.wokki.polled.MainActivity
 import com.wokki.polled.R
 import com.wokki.polled.UserActivity
@@ -208,20 +209,23 @@ class TimelineAdapter(private val context: Context, private val resultLauncher: 
 
                     postImage.visibility = View.VISIBLE
 
-                    // Set a fixed width and height for the image to prevent it from being too large
                     Glide.with(itemView.context)
                         .load(url)
-                        .centerCrop() // Center crop to fit the image nicely
+                        .fitCenter()
                         .apply(RequestOptions().transform(RoundedCorners(26))) // Adds border radius of 26px
-                        .override(500, 500) // Set a max size for the image (adjust as needed)
                         .into(postImage)
+
+
+                    postImage.setOnClickListener {
+                        val imageUrl = "https://wokki20.nl/polled/api/v1/$image"
+                        val intent = Intent(itemView.context, FullscreenImageActivity::class.java)
+                        intent.putExtra("image_url", imageUrl)
+                        itemView.context.startActivity(intent)
+                    }
                 } else {
                     postImage.visibility = View.GONE
                 }
             }
-
-
-
 
 
 
@@ -313,7 +317,7 @@ class TimelineAdapter(private val context: Context, private val resultLauncher: 
             // Check if message is longer than 273 characters
             if (message.length > 273) {
                 // Truncate the message and add "..."
-                val truncatedMessage = message.substring(0, 300) + "..."
+                val truncatedMessage = message.substring(0, 273) + "..."
 
 
                 markwon.setMarkdown(messageText, truncatedMessage)
@@ -654,7 +658,7 @@ class TimelineAdapter(private val context: Context, private val resultLauncher: 
             // Check if message is longer than 273 characters
             if (message.length > 273) {
                 // Truncate the message and add "..."
-                val truncatedMessage = message.substring(0, 300) + "..."
+                val truncatedMessage = message.substring(0, 273) + "..."
 
                 markwon.setMarkdown(messageText, truncatedMessage)
 
@@ -722,7 +726,7 @@ class TimelineAdapter(private val context: Context, private val resultLauncher: 
             // Check if message is longer than 273 characters
             if (message.length > 273) {
                 // Truncate the message and add "..."
-                val truncatedMessage = message.substring(0, 300) + "..."
+                val truncatedMessage = message.substring(0, 273) + "..."
 
                 markwon.setMarkdown(messageText, truncatedMessage)
                 // Set the truncated message

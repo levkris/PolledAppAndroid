@@ -161,10 +161,17 @@ class FullPostActivity : AppCompatActivity() {
                 // Set a fixed width and height for the image to prevent it from being too large
                 Glide.with(itemView.context)
                     .load(url)
-                    .centerCrop() // Center crop to fit the image nicely
+                    .fitCenter()
                     .apply(RequestOptions().transform(RoundedCorners(26))) // Adds border radius of 26px
-                    .override(500, 500) // Set a max size for the image (adjust as needed)
                     .into(postImage)
+
+
+                postImage.setOnClickListener {
+                    val imageUrl = "https://wokki20.nl/polled/api/v1/$image"
+                    val intent = Intent(itemView.context, FullscreenImageActivity::class.java)
+                    intent.putExtra("image_url", imageUrl)
+                    itemView.context.startActivity(intent)
+                }
             } else {
                 postImage.visibility = View.GONE
             }
@@ -473,7 +480,7 @@ class FullPostActivity : AppCompatActivity() {
         // Check if message is longer than 273 characters
         if (message.length > 273) {
             // Truncate the message and add "..."
-            val truncatedMessage = message.substring(0, 300) + "..."
+            val truncatedMessage = message.substring(0, 273) + "..."
 
             markwon.setMarkdown(messageText, truncatedMessage)
 
@@ -541,7 +548,7 @@ class FullPostActivity : AppCompatActivity() {
         // Check if message is longer than 273 characters
         if (message.length > 273) {
             // Truncate the message and add "..."
-            val truncatedMessage = message.substring(0, 300) + "..."
+            val truncatedMessage = message.substring(0, 273) + "..."
 
             markwon.setMarkdown(messageText, truncatedMessage)
             // Set the truncated message
@@ -932,7 +939,7 @@ class FullPostActivity : AppCompatActivity() {
                         // Check if message is longer than 273 characters
                         if (message.length > 273) {
                             // Truncate the message and add "..."
-                            val truncatedMessage = message.substring(0, 300) + "..."
+                            val truncatedMessage = message.substring(0, 273) + "..."
 
                             markwon.setMarkdown(messageText, truncatedMessage)
 

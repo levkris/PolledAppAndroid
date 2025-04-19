@@ -1,7 +1,12 @@
 [versions]
 agp = "8.7.2"
+androidsvg = "1.4"
+blurview = "1.6.6"
+common = "18.11.0"
+compiler = "4.15.1"
 coreVersion = "4.6.2"
 glide = "4.12.0"
+glideSvg = "4.13.0"
 gson = "2.10.1"
 highlightjsAndroidVersion = "X.X.X"
 kotlin = "1.9.24"
@@ -11,6 +16,7 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 kotlinxCoroutinesAndroid = "1.7.3"
+languageId = "17.0.6"
 lifecycleLivedataKtxVersion = "2.3.1"
 lifecycleViewmodelKtxVersion = "2.3.1"
 material = "1.12.0"
@@ -21,6 +27,7 @@ materialVersion = "1.7.8"
 navigationFragmentKtx = "2.8.4"
 navigationUiKtx = "2.8.4"
 okhttp = "4.10.0"
+photoview = "2.3.0"
 prism4j = "1.0.0"
 prism4jVersion = "2.0.0"
 swiperefreshlayout = "1.1.0"
@@ -31,14 +38,20 @@ uiGeometryAndroid = "1.7.8"
 playServicesSafetynet = "18.1.0"
 protoliteWellKnownTypes = "18.0.1"
 uiAndroid = "1.7.8"
+languageIdCommon = "16.1.0"
 
 [libraries]
+androidsvg = { module = "com.caverock:androidsvg", version.ref = "androidsvg" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-livedata-ktx-v231 = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtxVersion" }
 androidx-lifecycle-viewmodel-ktx-v231 = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtxVersion" }
+blurview = { module = "com.eightbitlab:blurview", version.ref = "blurview" }
+common = { module = "com.google.mlkit:common", version.ref = "common" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
+compiler-v4151 = { module = "com.github.bumptech.glide:compiler", version.ref = "compiler" }
 core = { module = "io.noties.markwon:core", version.ref = "coreVersion" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+glide-svg = { module = "com.github.bumptech.glide:glide-svg", version.ref = "glideSvg" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 html = { module = "io.noties.markwon:html", version.ref = "coreVersion" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -46,6 +59,8 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
+language-id = { module = "com.google.mlkit:language-id", version.ref = "languageIdCommon" }
+language-id-v1706 = { module = "com.google.mlkit:language-id", version.ref = "languageId" }
 markwon = { module = "io.noties.markwon:markwon", version.ref = "syntaxHighlighter" }
 markwon-prism4j = { module = "io.noties.markwon:prism4j", version.ref = "coreVersion" }
 markwon-syntaxhighlight = { module = "io.noties.markwon:markwon-syntaxhighlight", version.ref = "syntaxHighlighter" }
@@ -61,6 +76,7 @@ androidx-ui-geometry-android = { group = "androidx.compose.ui", name = "ui-geome
 material-v178 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 pddstudio-highlightjs-android = { module = "com.pddstudio:highlightjs-android", version.ref = "highlightjsAndroidVersion" }
+photoview = { module = "com.github.chrisbanes:PhotoView", version.ref = "photoview" }
 play-services-safetynet = { group = "com.google.android.gms", name = "play-services-safetynet", version.ref = "playServicesSafetynet" }
 prism4j = { module = "io.noties.prism4j:prism4j", version.ref = "prism4j" }
 prism4j-bundler = { module = "io.noties.prism4j:prism4j-bundler", version.ref = "prism4jVersion" }
@@ -73,6 +89,7 @@ syntax-highlight = { module = "io.noties.markwon:syntax-highlight", version.ref 
 syntax-highlighter = { module = "io.noties.markwon:syntax-highlighter", version.ref = "syntaxHighlighter" }
 translate = { module = "com.google.mlkit:translate", version.ref = "translate" }
 androidx-ui-android = { group = "androidx.compose.ui", name = "ui-android", version.ref = "uiAndroid" }
+language-id-common = { group = "com.google.mlkit", name = "language-id-common", version.ref = "languageIdCommon" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

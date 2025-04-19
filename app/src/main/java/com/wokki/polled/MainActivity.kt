@@ -10,6 +10,8 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Uri
@@ -22,6 +24,7 @@ import android.util.Log
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -30,9 +33,13 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.SimpleTarget
+import com.bumptech.glide.request.transition.Transition
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.gson.Gson
-import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.languageid.LanguageIdentification
+import com.google.mlkit.nl.languageid.LanguageIdentificationOptions
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.wokki.polled.databinding.ActivityMainBinding
@@ -41,9 +48,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
@@ -80,8 +90,10 @@ class MainActivity<File> : AppCompatActivity() {
                     handler.postDelayed(this, 300000) // Re-run every 5 minutes
 
                 } else {
-                    fetchNotifications()
-                    handler.postDelayed(this, 600000) // Re-run every 10 minutes
+                    if (sharedPreferences.getBoolean("notifications", false) && isInternetAvailable()) {
+                        fetchNotifications()
+                        handler.postDelayed(this, 600000)
+                    }
 
                 }
             }
@@ -121,6 +133,16 @@ class MainActivity<File> : AppCompatActivity() {
         accessToken = sharedPreferences.getString("access_token", null)
         autoUpdate = sharedPreferences.getBoolean("auto_update", true)
 
+        val isDarkMode = sharedPreferences.getBoolean("dark_mode", false)
+        val isAutoTheme = sharedPreferences.getBoolean("auto_theme", true)
+
+        AppCompatDelegate.setDefaultNightMode(
+            if (isAutoTheme) AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            else if (isDarkMode) AppCompatDelegate.MODE_NIGHT_YES
+            else AppCompatDelegate.MODE_NIGHT_NO
+        )
+
+
         val refreshAccessToken = RefreshAccessToken(this)
 
         lifecycleScope.launch {
@@ -149,6 +171,73 @@ class MainActivity<File> : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
+        navView.setItemIconTintList(null)
+
+
+        if (!accessToken.isNullOrEmpty()) {
+            val client = OkHttpClient()
+            val request = Request.Builder()
+                .url("https://wokki20.nl/polled/api/v1/profile")
+                .header("Authorization", "Bearer $accessToken")
+                .build()
+
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    Log.e("ProfileRequest", "Failed to fetch profile", e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    if (!response.isSuccessful) {
+                        Log.e("ProfileRequest", "Unexpected response code: ${response.code}")
+                        return
+                    }
+
+                    val responseBody = response.body?.string()
+                    if (responseBody != null) {
+                        try {
+                            val json = JSONObject(responseBody)
+                            if (json.getString("status") == "success") {
+                                val data = json.getJSONObject("profile")
+                                val userUrl = data.getString("user_url")
+                                val userImage = data.getString("image")
+                                val imageUrl = "https://wokki20.nl/polled/api/v1/users/$userUrl/$userImage"
+
+                                runOnUiThread {
+                                    // Check if the activity is still alive
+                                    if (!isDestroyed && !isFinishing) {
+                                        Glide.with(this@MainActivity) // ← replace with actual activity
+                                            .asBitmap()
+                                            .load(imageUrl)
+                                            .circleCrop()
+                                            .into(object : SimpleTarget<Bitmap>() {
+                                                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                                                    val icon = BitmapDrawable(resources, resource)
+                                                    val profileItem = navView.menu.findItem(R.id.navigation_profile)
+                                                    profileItem.icon = icon
+                                                }
+
+                                                override fun onLoadFailed(errorDrawable: Drawable?) {
+                                                    super.onLoadFailed(errorDrawable)
+                                                    Log.e("Glide", "Failed to load profile image")
+                                                }
+                                            })
+                                    } else {
+                                        Log.e("MainActivity", "Activity is destroyed, skipping image load")
+                                    }
+                                }
+
+                            } else {
+                                Log.e("ProfileRequest", "API returned error: ${json.optString("error")}")
+                            }
+                        } catch (e: JSONException) {
+                            Log.e("ProfileRequest", "JSON parsing error", e)
+                        }
+                    }
+                }
+            })
+        } else {
+            Log.e("ProfileRequest", "No access token found")
+        }
 
         // Check if there's an extra for the page to navigate to
         val page = intent?.getStringExtra("page")
@@ -540,8 +629,6 @@ class MainActivity<File> : AppCompatActivity() {
     }
 
 
-
-
     fun translateMessage(message: String, onTranslated: (String) -> Unit) {
         // Replace markdown characters with placeholders
         val escapedMessage = message
@@ -564,33 +651,54 @@ class MainActivity<File> : AppCompatActivity() {
             placeholder
         }
 
-        val options = TranslatorOptions.Builder()
-            .setSourceLanguage(TranslateLanguage.ENGLISH)  // Assuming message is in English
-            .setTargetLanguage(targetLanguage)  // Set this dynamically based on the user's language
-            .build()
+        // Use ML Kit to detect language
+        val languageIdentifier = LanguageIdentification.getClient(LanguageIdentificationOptions.Builder().build())
 
-        val translator = Translation.getClient(options)
+        languageIdentifier.identifyLanguage(message)
+            .addOnSuccessListener { languageCode ->
+                if (languageCode == "und") {
+                    // "und" means unknown, handle it accordingly
+                    onTranslated(message)
+                    return@addOnSuccessListener
+                }
 
-        translator.downloadModelIfNeeded()
-            .addOnSuccessListener {
-                translator.translate(tempMessage)
-                    .addOnSuccessListener { translatedText ->
-                        // Restore markdown placeholders
-                        var formattedText = translatedText
-                            .replace("\uE001", "*")
-                            .replace("\uE002", "#")
-                            .replace("\uE003", "_")
-                            .replace("\uE004", "`")
-                            .replace("\uE000", "\n")
+                // Get the device's default language (target language)
+                val targetLanguage = Locale.getDefault().language
 
-                        // Restore mentions
-                        mentions.forEach { (placeholder, original) ->
-                            formattedText = formattedText.replace(placeholder, original)
-                        }
+                // Use the detected language as the source language for translation
+                val options = TranslatorOptions.Builder()
+                    .setSourceLanguage(languageCode)  // Use detected language as source
+                    .setTargetLanguage(targetLanguage) // Use device's default language as target
+                    .build()
 
-                        Handler(Looper.getMainLooper()).post {
-                            onTranslated(formattedText)
-                        }
+                val translator = Translation.getClient(options)
+
+                translator.downloadModelIfNeeded()
+                    .addOnSuccessListener {
+                        translator.translate(tempMessage)
+                            .addOnSuccessListener { translatedText ->
+                                // Restore markdown placeholders
+                                var formattedText = translatedText
+                                    .replace("\uE001", "*")
+                                    .replace("\uE002", "#")
+                                    .replace("\uE003", "_")
+                                    .replace("\uE004", "`")
+                                    .replace("\uE000", "\n")
+
+                                // Restore mentions
+                                mentions.forEach { (placeholder, original) ->
+                                    formattedText = formattedText.replace(placeholder, original)
+                                }
+
+                                Handler(Looper.getMainLooper()).post {
+                                    onTranslated(formattedText)
+                                }
+                            }
+                            .addOnFailureListener {
+                                Handler(Looper.getMainLooper()).post {
+                                    onTranslated(message)
+                                }
+                            }
                     }
                     .addOnFailureListener {
                         Handler(Looper.getMainLooper()).post {
@@ -604,7 +712,6 @@ class MainActivity<File> : AppCompatActivity() {
                 }
             }
     }
-
 
     private fun fetchNotifications() {
         CoroutineScope(Dispatchers.IO).launch {

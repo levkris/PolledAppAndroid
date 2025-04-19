@@ -4,7 +4,7 @@
         <shape android:shape="rectangle">
             <corners android:topLeftRadius="20dp"
                 android:topRightRadius="20dp"/>
-            <solid android:color="?android:attr/windowBackground"/>
+            <solid android:color="@color/background"/>
         </shape>
     </item>
 </layer-list>

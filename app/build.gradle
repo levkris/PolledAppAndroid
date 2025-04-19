@@ -13,8 +13,8 @@ android {
         applicationId "com.wokki.polled"
         minSdk 29
         targetSdk 34
-        versionCode 6
-        versionName "0.7.3-beta"
+        versionCode 7
+        versionName "0.8.0-beta"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Make sure these are in the defaultConfig block
@@ -77,5 +77,8 @@ dependencies {
     implementation libs.kotlinx.coroutines.android
     implementation libs.material.v178
     implementation libs.core
-
+    implementation libs.photoview
+    kapt libs.compiler.v4151
+    implementation libs.language.id.v1706
+    implementation libs.common
 }

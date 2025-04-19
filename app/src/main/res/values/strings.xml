@@ -73,7 +73,7 @@
     <string name="unlisted_post">Unlisted</string>
     <string name="followers_post">Followers only</string>
     <string name="friends_post">Friends only</string>
-    <string name="autoTranslatePosts">Auto translate posts</string>
+    <string name="autoTranslatePosts">Auto translate posts (beta)</string>
     <string name="deleted_comment">This message got deleted</string>
     <string name="deleted_message">deleted this message</string>
     <string name="follow_notification_title">%s is now following you</string>
@@ -101,6 +101,19 @@
     <string name="download">Download and Install</string>
     <string name="checkUpdates">Check for updates</string>
     <string name="no_update_available">No update availible</string>
-    <string name="autoUpdate">Auto update app</string>
+    <string name="autoUpdate">Auto check for updates</string>
     <string name="upload_image">Upload image</string>
+    <string name="general">General:</string>
+    <string name="account">Account:</string>
+    <string name="appearance">Appearance:</string>
+    <string name="light_mode">Light Mode</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="use_device_settings">Use device settings</string>
+    <string name="use_device_settings_msg"><![CDATA[Match appearance to your device\'s Display & Brightness settings.]]></string>
+    <string name="notifications">Notifications:</string>
+    <string name="autoUpdate_msg">Automatically check for updates when opening the app</string>
+    <string name="autoTranslate_msg">Automatically translate posts to the language of your device (beta)</string>
+    <string name="sendNotifications">Send notifications</string>
+    <string name="sendNotifications_msg">Send push notifications to your device about follows, comments, likes, etc</string>
+    <string name="app">App:</string>
 </resources>

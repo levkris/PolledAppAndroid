@@ -1,12 +1,15 @@
 package com.wokki.polled.ui.profile
 
+import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
+import android.app.UiModeManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
@@ -30,6 +33,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -92,6 +96,7 @@ class ProfileFragment : Fragment() {
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
     private var markwon: Markwon? = null
+    private lateinit var tabLayout: TabLayout
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -143,7 +148,6 @@ class ProfileFragment : Fragment() {
         profileViewModel.bio.observe(viewLifecycleOwner) { bio ->
             // if bio is null, set it to something else
             markwon?.setMarkdown(binding.bio, bio)
-            binding.bio.visibility = View.VISIBLE
         }
 
 
@@ -193,16 +197,36 @@ class ProfileFragment : Fragment() {
         }
 
 
+// Retrieve the last selected tab position from SharedPreferences (default to 0)
+        val lastSelectedTabPosition = sharedPreferences.getInt("lastSelectedTab", 0)
 
+// Initialize the TabLayout
+        tabLayout = binding.profileTabs // Replace with your actual TabLayout reference
 
-        val tabLayout = view.findViewById<TabLayout>(R.id.profile_tabs)
-
+// Add tabs to the TabLayout
         tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.ic_about))
         tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.ic_activity))
         tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.ic_settings))
 
+// Set the last selected tab after adding the tabs
+        tabLayout.getTabAt(lastSelectedTabPosition)?.select()
+
+        if (lastSelectedTabPosition == 0) {
+            showAboutSection()
+        } else if (lastSelectedTabPosition == 1) {
+            showActivitySection(postsList)
+        } else if (lastSelectedTabPosition == 2) {
+            showSettingsSection()
+        } else {
+            showAboutSection()
+        }
+
+// Listen for tab selection
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
+                // Save the selected tab position in SharedPreferences
+                sharedPreferences.edit().putInt("lastSelectedTab", tab?.position ?: 0).apply()
+
                 when (tab?.position) {
                     0 -> showAboutSection()
                     1 -> showActivitySection(postsList)
@@ -214,7 +238,6 @@ class ProfileFragment : Fragment() {
 
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
-
 
 
 
@@ -369,7 +392,160 @@ class ProfileFragment : Fragment() {
             editor.putBoolean("auto_update", isChecked)
             editor.apply()
         }
+
+        var isProgrammaticChange = false
+
+        val radioDark = binding.radioDark
+        val radioLight = binding.radioLight
+        val autoTheme = binding.useDeviceTheme
+
+        val isAutoTheme = sharedPreferences.getBoolean("auto_theme", true)
+        val isDarkMode = sharedPreferences.getBoolean("dark_mode", false)
+        radioDark.isChecked = isDarkMode
+        radioLight.isChecked = !isDarkMode
+        autoTheme.isChecked = isAutoTheme
+
+        autoTheme.setOnCheckedChangeListener { _, isChecked ->
+            if (isProgrammaticChange) return@setOnCheckedChangeListener
+
+            if (isChecked) {
+                // Get system-wide theme preference (phone setting)
+                val uiModeManager = requireContext().getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+                val systemNightMode = uiModeManager.nightMode
+
+                when (systemNightMode) {
+                    UiModeManager.MODE_NIGHT_YES -> {
+                        radioDark.isChecked = true
+                        radioLight.isChecked = false
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                    }
+                    UiModeManager.MODE_NIGHT_NO -> {
+                        radioLight.isChecked = true
+                        radioDark.isChecked = false
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                    }
+                    else -> {
+                        // fallback to config if systemNightMode is unknown
+                        val currentNightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                        if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
+                            radioDark.isChecked = true
+                            radioLight.isChecked = false
+                            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                        } else {
+                            radioLight.isChecked = true
+                            radioDark.isChecked = false
+                            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                        }
+                    }
+                }
+            }
+
+            sharedPreferences.edit()
+                .putBoolean("auto_theme", isChecked)
+                .apply()
+        }
+
+
+        // DARK MODE button clicked
+        radioDark.setOnClickListener {
+            radioLight.isChecked = false
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            sharedPreferences.edit()
+                .putBoolean("dark_mode", true)
+                .putBoolean("auto_theme", false)
+                .apply()
+
+            // Disable auto theme programmatically
+            isProgrammaticChange = true
+            autoTheme.isChecked = false
+            isProgrammaticChange = false
+
+            showSettingsSection()
+        }
+
+        // LIGHT MODE button clicked
+        radioLight.setOnClickListener {
+            radioDark.isChecked = false
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            sharedPreferences.edit()
+                .putBoolean("dark_mode", false)
+                .putBoolean("auto_theme", false)
+                .apply()
+
+            // Disable auto theme programmatically
+            isProgrammaticChange = true
+            autoTheme.isChecked = false
+            isProgrammaticChange = false
+
+            showSettingsSection()
+        }
+
+
+        // Somewhere in your Activity or Fragment
+        val sendNotifications = sharedPreferences.getBoolean("send_notifications", false)
+        val sendNotificationsBinding = binding.sendNotifications
+
+        sendNotificationsBinding.isChecked = sendNotifications
+
+        sendNotificationsBinding.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        // Ask for permission in Fragment
+                        requestPermissions(
+                            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                            1001
+                        )
+                    } else {
+                        // Already granted
+                        sharedPreferences.edit()
+                            .putBoolean("send_notifications", true)
+                            .apply()
+                    }
+                } else {
+                    // Old Android, no permission needed
+                    sharedPreferences.edit()
+                        .putBoolean("send_notifications", true)
+                        .apply()
+                }
+            } else {
+                sharedPreferences.edit()
+                    .putBoolean("send_notifications", false)
+                    .apply()
+            }
+        }
+
+
+
     }
+
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == 1001) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Perm granted
+                sharedPreferences.edit()
+                    .putBoolean("send_notifications", true)
+                    .apply()
+                binding.sendNotifications.isChecked = true
+            } else {
+                // Denied
+                sharedPreferences.edit()
+                    .putBoolean("send_notifications", false)
+                    .apply()
+                binding.sendNotifications.isChecked = false
+            }
+        }
+    }
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

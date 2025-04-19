@@ -1,5 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+
+    <color name="clr_dark_a0">#000000</color>
+    <color name="clr_light_a0">#ffffff</color>
+
+    <!-- Theme primary colors -->
+    <color name="clr_primary_a0">#007bff</color>
+    <color name="clr_primary_a10">#367bf1</color>
+    <color name="clr_primary_a10_40">#367bf140</color>
+    <color name="clr_primary_a20">#4b7ce2</color>
+    <color name="clr_primary_a30">#597cd4</color>
+    <color name="clr_primary_a40">#647dc6</color>
+    <color name="clr_primary_a50">#6c7db8</color>
+
+    <!-- Theme surface colors -->
+    <color name="clr_surface_a0">#dde3ff</color>
+    <color name="clr_surface_a10">#d2d8f0</color>
+    <color name="clr_surface_a20">#c8cce1</color>
+    <color name="clr_surface_a30">#bdc1d3</color>
+    <color name="clr_surface_a40">#b3b6c5</color>
+    <color name="clr_surface_a50">#a8abb7</color>
+
+    <!-- Theme tonal surface colors -->
+    <color name="clr_surface_tonal_a0">#dde3ff</color>
+    <color name="clr_surface_tonal_a10">#d2d8f0</color>
+    <color name="clr_surface_tonal_a20">#c8cce1</color>
+    <color name="clr_surface_tonal_a30">#bdc1d3</color>
+    <color name="clr_surface_tonal_a40">#b3b6c5</color>
+    <color name="clr_surface_tonal_a50">#a8abb7</color>
+
     <!-- light theme -->
     <color name="main">#007BFF</color>
     <color name="main_hover">#0056b3</color>
@@ -15,6 +45,7 @@
 
     <!-- dark theme -->
     <color name="background_dark">#212121</color>
-    <color name="post_background_dark">#171717</color>
     <color name="text_dark">#fff</color>
+
+    <color name="nav_item_notclicked">#606264</color>
 </resources>

@@ -2,7 +2,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape xmlns:android="http://schemas.android.com/apk/res/android">
-            <solid android:color="?android:attr/windowBackground" /> <!-- Background color -->
+            <solid android:color="@color/background" /> <!-- Background color -->
             <corners android:radius="1000dp" /> <!-- Larger radius for squircle effect -->
             <size android:width="35dp" android:height="35dp" />
         </shape>

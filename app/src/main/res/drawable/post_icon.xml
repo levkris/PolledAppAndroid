@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selected (Clicked) -->
+    <item android:drawable="@drawable/ic_post_black_24dp" android:state_checked="true" />
+    <!-- Default (Not clicked) -->
+    <item android:drawable="@drawable/ic_post_black_24dp_notclicked" android:state_checked="false" />
+</selector>

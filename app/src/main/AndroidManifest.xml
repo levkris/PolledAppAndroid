@@ -79,6 +79,8 @@
         <activity android:name=".NoInternetActivity">
         </activity>
 
+        <activity android:name=".FullscreenImageActivity" />
+
 
     </application>
 </manifest>
