@@ -119,4 +119,8 @@
     <string name="sendNotifications">Meldingen verzenden</string>
     <string name="sendNotifications_msg">Pushmeldingen naar je apparaat verzenden over volgers, reacties, likes, enz.</string>
     <string name="app">App:</string>
+    <string name="no_messages">Nog geen berichten</string>
+    <string name="send_hint">Stuur een bericht...</string>
+    <string name="app_version">App versie: %s</string>
+    <string name="app_build">App build: %s</string>
 </resources>

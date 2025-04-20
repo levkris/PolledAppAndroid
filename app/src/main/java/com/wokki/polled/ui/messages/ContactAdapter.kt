@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat.getString
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
@@ -30,7 +31,12 @@ class ContactAdapter(
     override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
         val contact = contacts[position]
         holder.username.text = contact.username
-        holder.lastMessage.text = contact.last_message ?: "No messages yet"
+
+        holder.lastMessage.text = if (contact.last_message == null || contact.last_message == "null") {
+            getString(holder.itemView.context, R.string.no_messages)
+        } else {
+            contact.last_message
+        }
 
         if (contact.verified) {
             holder.itemView.findViewById<ImageView>(R.id.verifiedIcon).visibility = View.VISIBLE

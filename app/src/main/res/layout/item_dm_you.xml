@@ -1,0 +1,46 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dm_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_gravity="end"
+    android:layout_marginTop="10dp">
+
+    <!-- Message box with flexible width -->
+    <TextView
+        android:id="@+id/dm_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/dm_me_item"
+        android:layout_gravity="end"
+        android:padding="10dp"
+        android:layout_marginTop="5dp"
+        android:text="Message here"
+        android:layout_weight="1" /> <!-- This will allow it to expand based on available space -->
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical|end">
+
+        <TextView
+            android:id="@+id/dm_created_at"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="17:30"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:layout_marginEnd="5dp" />
+
+        <ImageView
+            android:id="@+id/status"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_check"
+            android:layout_marginEnd="5dp" />
+
+    </LinearLayout>
+
+
+</LinearLayout>

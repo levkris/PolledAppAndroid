@@ -117,7 +117,7 @@
         <androidx.core.widget.NestedScrollView
             android:id="@+id/settings_container"
             android:layout_width="match_parent"
-            android:visibility="visible"
+            android:visibility="gone"
             android:layout_height="0dp"
             android:layout_marginBottom="60dp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -168,19 +168,23 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="@string/autoTranslatePosts"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
 
                             <Switch
                                 android:id="@+id/autoTranslatePosts"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"/>
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="end" />
+
 
                         </LinearLayout>
 
@@ -205,19 +209,22 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="@string/autoUpdate"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
 
                             <Switch
                                 android:id="@+id/autoUpdate"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"/>
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="end" />
 
                         </LinearLayout>
 
@@ -254,6 +261,7 @@
                     android:padding="10dp"
                     app:layout_constraintBottom_toBottomOf="@+id/notifications_title"
                     app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="1.0"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/appearance_title"
                     app:layout_constraintVertical_bias="0.0">
@@ -292,18 +300,18 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_margin="10dp"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:orientation="vertical"
-                            android:layout_margin="10dp">
+                            android:orientation="vertical">
 
                             <TextView
                                 android:id="@+id/theme_light_text"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/light_mode"
-                                android:textColor="?android:textColorPrimary"
-                                android:textAlignment="center" />
+                                android:textAlignment="center"
+                                android:textColor="?android:textColorPrimary" />
 
                             <RadioButton
                                 android:id="@+id/radio_light"
@@ -315,18 +323,18 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_margin="10dp"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:orientation="vertical"
-                            android:layout_margin="10dp">
+                            android:orientation="vertical">
 
                             <TextView
                                 android:id="@+id/theme_dark_text"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/dark_mode"
-                                android:textColor="?android:textColorPrimary"
-                                android:textAlignment="center" />
+                                android:textAlignment="center"
+                                android:textColor="?android:textColorPrimary" />
 
                             <RadioButton
                                 android:id="@+id/radio_dark"
@@ -335,29 +343,33 @@
                                 android:layout_marginTop="4dp" />
                         </LinearLayout>
                     </LinearLayout>
+
                     <LinearLayout
+                        android:id="@+id/theme_switch_button_container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_margin="20dp"
-                        android:id="@+id/theme_switch_button_container"
                         android:orientation="vertical">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="@string/use_device_settings"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
 
                             <Switch
                                 android:id="@+id/use_device_theme"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"/>
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="end" />
 
                         </LinearLayout>
 
@@ -365,7 +377,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
-                            android:text="@string/use_device_settings_msg"/>
+                            android:text="@string/use_device_settings_msg" />
 
                     </LinearLayout>
                 </LinearLayout>
@@ -408,19 +420,22 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_weight="1"
                                 android:text="@string/sendNotifications"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
 
                             <Switch
                                 android:id="@+id/sendNotifications"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"/>
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="end" />
 
                         </LinearLayout>
 
@@ -483,6 +498,36 @@
                     app:backgroundTint="@null"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/app_title" />
+
+                <LinearLayout
+                    android:id="@+id/app_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="20dp"
+                    android:background="@drawable/post_item"
+                    android:orientation="vertical"
+                    android:padding="10dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/checkUpdate_button"
+                    app:layout_constraintVertical_bias="0.0">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/app_version"
+                        android:text="@string/app_version"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/app_build"
+                        android:text="@string/app_build"
+                        android:layout_marginTop="10dp"
+                        android:textSize="16sp" />
+
+                </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.core.widget.NestedScrollView>
 

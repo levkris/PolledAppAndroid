@@ -34,6 +34,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -173,8 +174,33 @@ class MainActivity<File> : AppCompatActivity() {
 
         navView.setItemIconTintList(null)
 
+        val cachedProfileImageUrl = sharedPreferences.getString("cached_profile_image_url", null)
 
         if (!accessToken.isNullOrEmpty()) {
+
+            if (!cachedProfileImageUrl.isNullOrEmpty()) {
+                // Load from cache and skip the request
+                Glide.with(this@MainActivity)
+                    .asBitmap()
+                    .load(cachedProfileImageUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .circleCrop()
+                    .into(object : SimpleTarget<Bitmap>() {
+                        override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                            val icon = BitmapDrawable(resources, resource)
+                            val profileItem = navView.menu.findItem(R.id.navigation_profile)
+                            profileItem.icon = icon
+                        }
+
+                        override fun onLoadFailed(errorDrawable: Drawable?) {
+                            super.onLoadFailed(errorDrawable)
+                            Log.e("Glide", "Failed to load cached profile image")
+                        }
+                    })
+
+                return
+            }
+
             val client = OkHttpClient()
             val request = Request.Builder()
                 .url("https://wokki20.nl/polled/api/v1/profile")
@@ -201,6 +227,7 @@ class MainActivity<File> : AppCompatActivity() {
                                 val userUrl = data.getString("user_url")
                                 val userImage = data.getString("image")
                                 val imageUrl = "https://wokki20.nl/polled/api/v1/users/$userUrl/$userImage"
+                                sharedPreferences.edit().putString("cached_profile_image_url", imageUrl).apply()
 
                                 runOnUiThread {
                                     // Check if the activity is still alive

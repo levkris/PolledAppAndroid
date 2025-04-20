@@ -7,7 +7,7 @@
     <!-- Theme primary colors -->
     <color name="clr_primary_a0">#007bff</color>
     <color name="clr_primary_a10">#4a88ff</color>
-    <color name="clr_primary_a10_40">#4a88ff40</color>
+    <color name="clr_primary_a10_40">#404a88ff</color>
     <color name="clr_primary_a20">#6b96ff</color>
     <color name="clr_primary_a30">#85a4ff</color>
     <color name="clr_primary_a40">#9cb3ff</color>

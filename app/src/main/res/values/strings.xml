@@ -116,4 +116,8 @@
     <string name="sendNotifications">Send notifications</string>
     <string name="sendNotifications_msg">Send push notifications to your device about follows, comments, likes, etc</string>
     <string name="app">App:</string>
+    <string name="no_messages">No messages yet</string>
+    <string name="send_hint">Send a message...</string>
+    <string name="app_version">App version: %s</string>
+    <string name="app_build">App build: %s</string>
 </resources>

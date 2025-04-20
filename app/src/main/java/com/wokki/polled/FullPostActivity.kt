@@ -56,6 +56,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -325,22 +326,25 @@ class FullPostActivity : AppCompatActivity() {
             displayComments(comments, parentMessageId = id)
         }
 
-        // Handle the reply input and button for posting comments
         itemView.setOnClickListener {
-            // Reset reply context when tapping outside the comment area
             replyInput.requestFocus()
             replyInput.setHint(getString(R.string.reply_hint))
-            replyingToCommentId = null
+            replyingToCommentId = null // ← Important! This means "reply to post"
         }
 
-        // Reply to comment
+
         replyButton.setOnClickListener {
-            if (replyInput.text.toString().isNotEmpty() && replyingToCommentId == null) {
-                addComment(replyInput.text.toString(), id, id)
+            val text = replyInput.text.toString()
+            if (text.isNotEmpty()) {
+                addComment(text, replyingToCommentId, id)
                 replyInput.text.clear()
-                replyingToCommentId = null  // Reset after posting
+                replyingToCommentId = null
+                replyInput.setHint(getString(R.string.reply_hint))
+            } else {
+                println("Empty comment or reply target is null.")
             }
         }
+
 
         itemView.setOnLongClickListener {
             showPostOptions(timelineItem, timelineItem.optBoolean("can_change"), translated, false, translateTextView = messageText)
@@ -815,8 +819,7 @@ class FullPostActivity : AppCompatActivity() {
         })
     }
 
-    private fun addComment(message: String, id: Int, parentID: Int) {
-        // Use coroutines to perform the network request on a background thread
+    private fun addComment(message: String, id: Int?, parentID: Int) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val url = URL("https://wokki20.nl/polled/api/v1/timeline")
@@ -827,7 +830,13 @@ class FullPostActivity : AppCompatActivity() {
                 urlConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 urlConnection.doOutput = true
 
-                val formData = "message=$message&message_id=$id"
+                val encodedMessage = URLEncoder.encode(message, "UTF-8")
+                val formData = if (id != null) {
+                    "message=$encodedMessage&message_id=$id"
+                } else {
+                    "message=$encodedMessage&message_id=$parentID"
+                }
+
                 urlConnection.outputStream.use { outputStream ->
                     outputStream.write(formData.toByteArray())
                 }
@@ -842,7 +851,6 @@ class FullPostActivity : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     updatePost(parentID)
-
                 }
 
             } catch (e: Exception) {
@@ -852,6 +860,7 @@ class FullPostActivity : AppCompatActivity() {
             }
         }
     }
+
 
     private fun updatePost(id: Int) {
         val url = "https://wokki20.nl/polled/api/v1/timeline?limit=1&offset_id=$id"
@@ -1272,24 +1281,12 @@ class FullPostActivity : AppCompatActivity() {
                 }
             }
 
-            // Set onClickListener for the commentView to set the reply context.
             commentView.setOnClickListener {
                 replyInput.requestFocus()
                 replyInput.setHint(getString(R.string.commentReply, commentObject.optString("maker")))
-                replyingToCommentId = commentObject.optInt("id") // Store the ID of the comment being replied to
-                replyingComment = true
+                replyingToCommentId = commentObject.optInt("id")
             }
 
-            // Use the global replyButton listener to post replies to the correct comment
-            replyButton.setOnClickListener {
-                if (replyInput.text.toString().isNotEmpty() && replyingToCommentId != null) {
-                    addComment(replyInput.text.toString(), replyingToCommentId!!, parentMessageId)
-                    replyInput.text.clear()
-                    replyingComment = false
-                    replyingToCommentId = null  // Reset the reply context
-                    replyInput.setHint(getString(R.string.reply_hint))
-                }
-            }
 
             commentTextView.setOnLongClickListener {
                 showPostOptions(commentObject, commentObject.optBoolean("can_change"), translated, true, commentView, translateTextView = commentTextView)

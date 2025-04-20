@@ -42,6 +42,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.google.android.material.tabs.TabLayout
 import com.google.gson.Gson
+import com.wokki.polled.BuildConfig
 import com.wokki.polled.FullPostActivity
 import com.wokki.polled.LoginActivity
 import com.wokki.polled.R
@@ -517,7 +518,8 @@ class ProfileFragment : Fragment() {
             }
         }
 
-
+        binding.appVersion.text = getString(R.string.app_version, BuildConfig.VERSION_NAME)
+        binding.appBuild.text = getString(R.string.app_build, BuildConfig.VERSION_CODE.toString())
 
     }
 
